@@ -1,0 +1,27 @@
+Bootstrap: docker # Where to get the base image from
+From: python:{{ PY_VERSION }}-slim # Which container to use as a base image
+
+%arguments
+	# The version of Python to use:
+	PY_VERSION=3.12
+  
+%files
+	requirements.txt requirements.txt
+
+%post
+	# Create a virtual environment in /opt/venv to install our dependencies:
+	/usr/local/bin/python -m venv /opt/venv
+
+	# Install requirements:
+	/opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+  # Remove the requirements.txt file:
+  rm requirements.txt
+
+	# Print a message to stderr to let the user know that the installation is done:
+	echo "$(/opt/venv/bin/python3 --version): Done installing dependencies." >&2
+
+%environment
+	export VIRTUAL_ENV="/opt/venv" # Set the virtual environment path.
+	export PATH="/opt/venv/bin:$PATH" # Add the virtual environment to the PATH.
+  export PYTHONDONTWRITEBYTECODE=1 # Don't write .pyc files to disk.

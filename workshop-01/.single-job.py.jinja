@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+# Calculate bootstrapped statistics for a subset of categories
+
+{% include '.bootstats-header.py.inc' %}
+    # Calculate the statistics for the specified categories and write the output to the output directory:
+    run(input_path, categories, n_iter, output_dir)

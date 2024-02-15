@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# Calculate bootstrapped statistics for a subset of categories (array job version)
+# Calculate bootstrapped statistics for a subset of categories
 
-import itertools  # For chunking the categories
 import polars as pl  # Polars dataframes for parsing and processing the data
 import gzip  # For reading the compressed CSV file
 import tqdm  # Progress bar
@@ -198,22 +197,5 @@ if __name__ == "__main__":
         ("education", "smoke"),
         ("gender", "relstatus"),
     )
-    # -- Additional code for array jobs --
-    # Get task count and task id from environment variables:
-    task_count = int(os.getenv("SLURM_ARRAY_TASK_COUNT", 1))
-    task_id = int(os.getenv("SLURM_ARRAY_TASK_ID", 1))
-    min_task_id = int(os.getenv("SLURM_ARRAY_TASK_MIN", 1))  # Get the minimum task ID
-    task_index = (task_id - min_task_id) + 1  # Convert task_id to 1-based index
-
-    # Split categories into chunks:
-    chunks = list(
-        itertools.batched(
-            categories, (len(categories) // task_count) + (len(categories) % task_count)
-        )
-    )
-
-    # Get categories for this task:
-    task_categories = chunks[task_index - 1]
-
     # Calculate the statistics for the specified categories and write the output to the output directory:
-    run(input_path, task_categories, n_iter, output_dir)
+    run(input_path, categories, n_iter, output_dir)

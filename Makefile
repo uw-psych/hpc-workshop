@@ -42,42 +42,58 @@ printvar-%: ## Print one Makefile variable.
 	@echo '  flavor = $(flavor $*)'
 	@echo '   value = $(value  $*)'
 
-# Make templated files:
-JINJA_INPUTS:= $(wildcard */.*.jinja)
-JINJA_OUTPUTS := $(join $(dir $(JINJA_INPUTS)), $(patsubst .%,%,$(patsubst %.jinja,%, $(notdir $(JINJA_INPUTS)))))
-JINJA_OUTPUTS_DEPS := $(wildcard */.*.inc)
-
-$(JINJA_OUTPUTS): $(JINJA_INPUTS)
-	@echo "Rendering $< to $@"
-	@jinja2 $< $(JINJA_VARS) -o $@
-
-.PHONY: templated
-templated: venv $(JINJA_OUTPUTS) $(JINJA_OUTPUTS_DEPS)
-
-# Set up virtual environment:
-REQUIREMENTS_FILES := $(wildcard requirements*.txt) $(wildcard */requirements*.txt)
-.PHONY: requirements
-requirements: $(REQUIREMENTS_FILES)
-	source .venv/bin/activate
-	for f in $^; do
-		@echo "Installing requirements from \"$$f\""
-		@pip install -r "$$f"
-	done
-
 .venv:
 	@echo "Setting up virtual environment"
 	python3 -m venv .venv
+	source .venv/bin/activate
+	pip install --upgrade pip
+
+
+.dev-requirements.installed: requirements-dev.txt | .venv
+	@echo "Installing development requirements"
+	@source .venv/bin/activate
+	@pip install -r $<
+	@touch $@
+
+.PHONY: dev-requirements
+dev-requirements: .dev-requirements.installed ## Install development requirements.
 
 .PHONY: venv
-venv: .venv
+venv: dev-requirements | .venv ## Create virtual environment and install dev requirements.
+
+.PHONY: install-requirements
+install-requirements: $(wildcard */requirements*.txt)
+	source .venv/bin/activate
+	@for f in $^; do
+		@echo "Installing requirements from \"$$f\""
+		@pip install -r "$$f"
+	@done
+
+.PHONY: requirements
+requirements: install-requirements | venv ## Install all requirements from all requirements files.
 
 .PHONY: setup
 setup: venv requirements
 
+# Make templated files:
+workshop-01/single-job.py: workshop-01/.single-job.py.jinja workshop-01/.bootstats-header.py.inc | .dev-requirements.installed
+	@echo "Rendering $< to $@"
+	@jinja2 $< $(JINJA_VARS) -o $@
+	@chmod +x $@
+
+workshop-01/array-job.py: workshop-01/.array-job.py.jinja workshop-01/.bootstats-header.py.inc | .dev-requirements.installed
+	@echo "Rendering $< to $@"
+	@jinja2 $< $(JINJA_VARS) -o $@
+	@chmod +x $@
+
+TEMPLATED_FILES := workshop-01/single-job.py workshop-01/array-job.py
+.PHONY: templated
+templated: $(TEMPLATED_FILES) ## Render all templated files.
+
 .PHONY: clean
 clean:
 	@echo "Cleaning up"
-	@rm -fv $(JINJA_OUTPUTS)
+	@rm -fv $(TEMPLATED_FILES)
 
 .PHONY: clean-all
 clean-all: clean

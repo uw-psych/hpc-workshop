@@ -1,6 +1,11 @@
 Bootstrap: docker # Where to get the base image from
 From: python:{{ PY_VERSION }}-slim # Which container to use as a base image
 
+# The %labels section specifies metadata for the container. In this case, we set
+# only the version of the container.
+%labels
+	org.opencontainers.image.version 0.0.1
+
 # The %arguments section allows you to specify variables at the time you build
 # the container. For example:
 # `apptainer build --arg PY_FILE=array-job.py my-container.sif Singularity`
@@ -36,6 +41,9 @@ From: python:{{ PY_VERSION }}-slim # Which container to use as a base image
 	# Print a message to stderr to let the user know that the installation is done:
 	echo "$(/opt/venv/bin/python3 --version): Done installing dependencies." >&2
 
+	# Make the Python script executable:
+	chmod +x /usr/local/bin/{{ PY_FILE }}
+
 # The %environment section sets environment variables that will be available when
 # the container is run. In this case, we set the virtual environment path and add
 # it to the PATH, and we set an environment variable to prevent Python from writing
@@ -47,7 +55,7 @@ From: python:{{ PY_VERSION }}-slim # Which container to use as a base image
 
 # The %runscript section specifies the command to run when the container is run.
 # In this case, we run the Python script that was copied into the container.
-# Be sure that the script is executable (e.g., `chmod +x array-job.py`).
 %runscript
-	# Run the Python script:
-	{{ PY_FILE }}
+	# Run the Python script with any arguments passed to the container:
+	{{ PY_FILE }} "$@"
+

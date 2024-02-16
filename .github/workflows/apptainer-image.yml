@@ -1,0 +1,149 @@
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    name: Build Apptainer image
+    permissions:
+        contents: read
+        packages: write
+    steps:
+      - name: Install Apptainer
+        uses: uw-psych/apptainer-actions/setup@main
+      - name: Check out code for the container build
+        uses: actions/checkout@v4
+      - name: Get version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            case "${GITHUB_REF_NAME:-}" in
+              v?*) IMAGE_VERSION="${GITHUB_REF_NAME#v}";;
+              *@?*) IMAGE_VERSION="${GITHUB_REF_NAME#*@}";;
+              *) echo "Invalid tag: \"${GITHUB_REF_NAME:-}\"" >&2; exit 1;;
+            esac
+            echo "IMAGE_VERSION=${IMAGE_VERSION}" >> "${GITHUB_ENV}"
+          fi
+      - name: Build container for workshop-01/single-job.py
+        uses: uw-psych/apptainer-actions/build-and-push@dev
+        with:
+          deffile: workshop-01/Singularity
+          build_args: 'PY_FILE=single-job.py'
+          
+      - 
+
+
+name: Build and Deploy Apptainer Container
+on:
+  push:
+    branches:
+      - main
+defaults:
+  run:
+    shell: bash
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  find-changed-images:
+    runs-on: ubuntu-latest
+    name: Find Changed Apptainer Containers
+    outputs:
+      image_names: ${{ steps.find-changed-deffiles.outputs.defs_to_build }}
+      n_defs_to_build: ${{ steps.find-changed-deffiles.outputs.n_defs_to_build }}
+    steps:
+    - name: Check out code for the container build
+      uses: actions/checkout@v4
+    - name: Find definition files of changed containers
+      id: find-changed-deffiles
+      run: |
+        set -ux
+        function find_singularity_files_deps() {
+          # Find all files that are dependencies of a Singularity definition file.
+          local __deffile="$1"
+          local __curdir="${PWD}"
+          echo "$(cd "$(dirname "${__deffile}")" && sed -nE '1,/^\s*%files\b/d; /^\s*%.*/q; s/^\s*//g; s/([^\])\s+.*$/\1/g; /^\s*$/d; p' "$(basename ${__deffile})" | paste -sd ' ' | xargs find | xargs realpath --logical --no-symlinks --relative-to="${__curdir}" | sort | uniq)"
+        }
+        found_deffiles=()
+        found_deffiles+="$(find . -type f \( -name 'Singularity' -o -name '*.def' -o -name 'Apptainer' \) || true)"
+        built_images="$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" '/users/maouw/packages?package_type=container' --jq '. [] | select(.repository.name == "${{ github.repository }}" | .name' | wc -l | cut -f1 -d' ')"
+        changed_files="$(git diff --name-only HEAD HEAD~1 || true)"
+        
+        if [[ "${#found_deffiles[@]}" > 0 ]]; then
+          for deffile in "${found_deffiles[@]}"; do
+            if [[ -n "${deffile:-}" ]] && [[ -r "${deffile}" ]]; then
+              echo "Found container definition file \"${deffile}\""
+              
+              if git diff --name-only HEAD HEAD~1 | grep -q -F -f <(echo "${deffile}"; find_singularity_files_deps "${deffile}"); then
+                echo "Found changes to files that are dependencies of \"${deffile}\""
+                defs_to_build+=("${deffile}")
+              fi
+            fi
+          done
+        fi
+
+        [[ "${#defs_to_build[@]}" > 0 ]] && echo "defs_to_build=\"${defs_to_build[*]}\"" >> "$GITHUB_OUTPUT" && echo "n_defs_to_build=${#defs_to_build[@]}" >> "$GITHUB_OUTPUT"
+  build-and-push-images:
+    needs: find-changed-images
+    runs-on: ubuntu-latest
+    name: Build and Deploy Apptainer Containers
+    permissions:
+      contents: read
+      packages: write
+#    if: ${{ needs.find-changed-images.outputs.n_defs_to_build }} > 0
+    steps:
+    - name: Check out code for the container build
+      uses: actions/checkout@v4
+    - name: Delete misc tools to free space
+      run: |
+        sudo rm -rf \
+          /usr/share/dotnet \
+          /opt/ghc \
+          /usr/local/lib/android \
+          /usr/local/share/powershell \
+          /usr/share/swift || true
+    - name: Download and Install Apptainer
+      run: |
+        set -euxo pipefail
+        APPTAINER_LATEST_TAGNAME="$(gh release view --repo apptainer/apptainer --json tagName -t '{{.tagName}}' | head -n 1)"
+        [[ -n "${APPTAINER_LATEST_TAGNAME}" ]] || { echo "No latest tag found for apptainer/apptainer"; exit 1; }
+        echo "Latest tag for apptainer/apptainer is \"${APPTAINER_LATEST_TAGNAME}\""
+        gh release download --repo apptainer/apptainer --pattern 'apptainer_*_amd64.deb' --skip-existing -O "${SETUP_DOWNLOADS_DIR}/apptainer_${APPTAINER_LATEST_TAGNAME}.deb" "${APPTAINER_LATEST_TAGNAME}" 
+        sudo dpkg --install --force-depends "${SETUP_DOWNLOADS_DIR}/apptainer_${APPTAINER_LATEST_TAGNAME}.deb" && sudo apt-get install --fix-broken --yes --quiet
+        apptainer --version
+    - name: Download and Install oras-cli
+      run: |
+        set -euxo pipefail
+        ORAS_LATEST_TAGNAME="$(gh release view --repo oras-project/oras --json tagName -t '{{.tagName}}' | head -n 1)"
+        [[ -n "${ORAS_LATEST_TAGNAME}" ]] || { echo "No latest tag found for oras-project/oras"; exit 1; }
+        echo "Latest tag for oras-project/oras is \"${ORAS_LATEST_TAGNAME}\""
+        gh release download --repo oras-project/oras --pattern '*linux_amd64.tar.gz' --skip-existing -O "${SETUP_DOWNLOADS_DIR}/oras_${ORAS_LATEST_TAGNAME}.tar.gz" "${ORAS_LATEST_TAGNAME}"
+        sudo mkdir -p /opt/local/bin
+        sudo tar -xzf "${SETUP_DOWNLOADS_DIR}/oras_${ORAS_LATEST_TAGNAME}.tar.gz" -C /opt/local/bin oras && sudo chmod +x /opt/local/bin/oras
+        export PATH="/opt/local/bin:${PATH}"
+        echo "PATH=${PATH}" >> $GITHUB_ENV
+        oras version
+    - name: Build Container
+      run: |
+        set -euxo pipefail
+        echo "Defs to build: \"${{ needs.find-changed-images.outputs.defs_to_build }}\""
+        apptainer remote login -u ${{ github.actor }} -p ${{ secrets.TOKEN }} oras://ghcr.io
+        for deffile in ${{ needs.find-changed-images.outputs.image_names}}; do
+          { [[ -n "${deffile:-}" ]] && [[ -r "${deffile}" ]] ; } || break
+          DEF_DIR="$(dirname "${deffile}")"
+          pushd "${DEF_DIR}"
+          IMAGE_NAME="$(basename "${PWD}")"
+          IMAGE_TAG="$(git rev-parse --short HEAD)"
+          echo "Building \"${IMAGE_NAME}.sif\""
+          apptainer build --fix-perms --force "${IMAGE_NAME}.sif" "${IMAGE_NAME}" || { echo "Failed to build \"${IMAGE_NAME}.sif\""; exit 1; }
+          echo "Built \"${IMAGE_NAME}.sif\""
+          echo "Pushing \"sif/${IMAGE_NAME}.sif\" to ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${IMAGE_TAG}"
+          apptainer push -U "sif/${IMAGE_NAME}.sif" oras://ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${IMAGE_TAG} || { echo "Failed to push \"sif/${IMAGE_NAME}.sif\' to ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${IMAGE_TAG}"; exit 1; }
+          echo "Pushed \"sif/${IMAGE_NAME}.sif\" to ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${IMAGE_TAG}"
+        
+          # Add "latest" tag if IMAGE_TAG is not latest
+          if [[ "${IMAGE_TAG}" != "latest" ]]; then
+            oras login -u ${{ github.actor }} -p ${{ secrets.TOKEN }} ghcr.io
+            oras tag ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${IMAGE_TAG} latest
+          fi
+          rm -f "${IMAGE_NAME}.sif"
+          popd
+        done

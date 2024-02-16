@@ -8,22 +8,16 @@ From: python:{{ PY_VERSION }}-slim # Which container to use as a base image
 
 # The %arguments section allows you to specify variables at the time you build
 # the container. For example:
-# `apptainer build --arg PY_FILE=array-job.py my-container.sif Singularity`
-# will set the PY_FILE variable to "array-job.py", and every instance of {{ PY_FILE }}
-# in the container definition will be replaced with "array-job.py".
+# `apptainer build --arg PY_VERSION=3.11 my-container.sif Singularity`
+# will replace every instance of {{ PY_VERSION } in this file with "3.11".
 %arguments
 	# The version of Python to use:
 	PY_VERSION=3.12
 
-	# The name of the Python script to copy into the container and run:
-	PY_FILE=single-job.py
-
-# The %files section specifies files to copy into the container. The first file
-# is the requirements.txt file, which lists the Python packages to install. The
-# second file is the Python script to run.
+# The %files section specifies files to copy into the container. 
 %files
+	# requirements.txt lists the Python packages to install:
 	requirements.txt
-	{{ PY_FILE }} /usr/local/bin/{{ PY_FILE }}
 
 # The %post section runs commands to install dependencies and set up the container.
 %post
@@ -41,8 +35,6 @@ From: python:{{ PY_VERSION }}-slim # Which container to use as a base image
 	# Print a message to stderr to let the user know that the installation is done:
 	echo "$(/opt/venv/bin/python3 --version): Done installing dependencies." >&2
 
-	# Make the Python script executable:
-	chmod +x /usr/local/bin/{{ PY_FILE }}
 
 # The %environment section sets environment variables that will be available when
 # the container is run. In this case, we set the virtual environment path and add
@@ -52,10 +44,3 @@ From: python:{{ PY_VERSION }}-slim # Which container to use as a base image
 	export VIRTUAL_ENV="/opt/venv"    # Set the virtual environment path.
 	export PATH="/opt/venv/bin:$PATH" # Add the virtual environment to the PATH.
 	export PYTHONDONTWRITEBYTECODE=1  # Don't write .pyc files to disk.
-
-# The %runscript section specifies the command to run when the container is run.
-# In this case, we run the Python script that was copied into the container.
-%runscript
-	# Run the Python script with any arguments passed to the container:
-	{{ PY_FILE }} "$@"
-

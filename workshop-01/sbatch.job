@@ -8,14 +8,14 @@
 
 # APPTAINER SETUP:
 #	The parameters to apptainer are specified by environment variables.
-#	The commands below will use the default values specified below unless
-#	these environment variables are already set. (this is what the :- means)
+#	Variables that are exported will be visible to Apptainer, SLURM, and the
+#   Python script.
 #		APPTAINER_IMAGE_DIR:
 #			The directory to use for storing apptainer images
-APPTAINER_IMAGE_DIR="${APPTAINER_IMAGE_DIR:-/gscratch/scrubbed/${USER}/apptainer-images}"
+APPTAINER_IMAGE_DIR="/gscratch/scrubbed/${USER}/apptainer-images"
 #		APPTAINER_IMAGE_PATH:
 #			The path to the apptainer image to use
-APPTAINER_IMAGE_PATH="${APPTAINER_IMAGE_PATH:-${APPTAINER_IMAGE_DIR}/array-jobs.sif}"
+APPTAINER_IMAGE_PATH="${APPTAINER_IMAGE_DIR}/sapa_bootstats.sif"
 
 # SCRIPT SETUP:
 # The parameters to the Python script cam be specified by environment variables.
@@ -24,13 +24,13 @@ APPTAINER_IMAGE_PATH="${APPTAINER_IMAGE_PATH:-${APPTAINER_IMAGE_DIR}/array-jobs.
 #	these environment variables are already set. (this is what the :- means)
 #		BOOT_INPUT_PATH:
 # 			The path to the csv or csv.gz input file (required)
-export BOOT_INPUT_PATH="${BOOT_INPUT_PATH:-../data/sapa_scored_subset.csv.gz}"
+export BOOT_INPUT_PATH="../data/sapa_scored_subset.csv.gz"
 #		BOOT_N_ITER:
 #			The number of bootstrap iterations to run
-export BOOT_N_ITER="${BOOT_N_ITER:-100}"
+export BOOT_N_ITER=100
 #		BOOT_OUTPUT_DIR:
 #			The directory to write the output to
-export BOOT_OUTPUT_DIR="${BOOT_OUTPUT_DIR:-output/sapa_scored_subset_n${BOOT_N_ITER}}"
+export BOOT_OUTPUT_DIR="output/sapa_scored_subset_n${BOOT_N_ITER}"
 
 # Set the run script based on whether this is an array job or not:
 if [[ -n "${SLURM_ARRAY_TASK_COUNT:-}" ]]; then
@@ -60,11 +60,11 @@ export APPTAINER_BINDPATH="${APPTAINER_BINDPATH:+${APPTAINER_BINDPATH}:}/gscratc
 # Set log directory and output file(s):
 #  (We use the SLURM_ARRAY_JOB_ID and SLURM_ARRAY_TASK_ID variables to make
 #  sure that the log directory is unique for each array job.)
-TASK_LOG_DIR="log/${RUN_SCRIPT%%.py}-n${BOOT_N_ITER}-${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID}}"
+TASK_LOG_DIR="log/${RUN_SCRIPT%%.py}/n${BOOT_N_ITER}-${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID}}"
 mkdir -p "${TASK_LOG_DIR}" # Create log directory if not exists
 
 # Set the output file to be the job name with the array index (if applicable):
 export SRUN_OUTPUT="${TASK_LOG_DIR}/${SLURM_JOB_NAME:-job}${SLURM_ARRAY_TASK_ID:+-${SLURM_ARRAY_TASK_ID}}.log"
 
 # Run the script, passing along any arguments:
-srun apptainer exec "${APPTAINER_IMAGE_PATH}" python "${RUN_SCRIPT}" "${@}"
+srun apptainer exec "${APPTAINER_IMAGE_PATH}" python3 "${RUN_SCRIPT}" "${@}"

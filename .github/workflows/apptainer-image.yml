@@ -17,11 +17,3 @@ jobs:
         uses: uw-psych/apptainer-actions/build-and-push@dev
         with:
           deffile: workshop-01/Singularity
-          build-args: PY_FILE=single-job.py
-          image-name: w01-single-job
-      - name: Build Container for Workshop 1 (array-job.py)
-        uses: uw-psych/apptainer-actions/build-and-push@dev
-        with:
-          deffile: workshop-01/Singularity
-          build-args: PY_FILE=array-job.py
-          image-name: w01-array-job

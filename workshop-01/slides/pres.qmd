@@ -133,7 +133,7 @@ Use a text editor to edit text files (scripts, etc.)
 :::
 
 ::: {.column width="60%"}
-![](nano.png) <!-- img nano.png -->
+![](nano.png)
 :::
 :::
 
@@ -173,7 +173,7 @@ pip3.9 install --user tldr
 tldr ls
 ```
 
-![](tldr.png) <!-- img nano.png -->
+![](tldr.png)
 
 ## `ranger`
 
@@ -191,7 +191,7 @@ pip3.9 install --user ranger-fm
 :::
 
 ::: {.column width="70%"}
-![](ranger-fm.png) <!-- img nano.png -->
+![](ranger-fm.png)
 :::
 :::
 

@@ -41,7 +41,8 @@ fi
 module load apptainer/local
 
 # If the image doesn't exist, build it:
-#   (We use the --disable-cache option to avoid filling up your home directory.)
+#   (--exclusive is used to ensure that the build process completes before the computations start)
+#   (We use the --disable-cache option to avoid filling up your home directory)
 if ! [[ -f "${APPTAINER_IMAGE_PATH:-}" ]]; then
 	srun --exclusive apptainer build \
 		--disable-cache \
@@ -51,12 +52,6 @@ fi
 
 # Append the /gscratch directory Apptainer's bind path so that we can access it:
 export APPTAINER_BINDPATH="${APPTAINER_BINDPATH:+${APPTAINER_BINDPATH}:}/gscratch"
-
-# Set log directory and output file(s):
-#  (We use the SLURM_ARRAY_JOB_ID and SLURM_ARRAY_TASK_ID variables to make
-#  sure that the log directory is unique for each array job.)
-TASK_LOG_DIR="log/${RUN_SCRIPT%%.py}-n${BOOT_N_ITER}-${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID}}"
-mkdir -p "${TASK_LOG_DIR}" # Create log directory if not exists
 
 # Set the output file to be the job name with the array index (if applicable):
 export SRUN_OUTPUT="${BOOT_OUTPUT_DIR}/${SLURM_JOB_NAME:-job}${SLURM_ARRAY_TASK_ID:+-${SLURM_ARRAY_TASK_ID}}.log"

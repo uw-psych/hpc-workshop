@@ -170,8 +170,8 @@ if __name__ == "__main__":
             "BOOT_INPUT_PATH environment variable must be set to a valid path to a CSV file."
         )
 
-    ### Get bootstrap iterations from BOOT_N_ITER environment var. or default 1000:
-    n_iter = int(os.getenv("BOOT_N_ITER", 1000))
+    ### Get bootstrap iterations from BOOT_N_ITER environment var. or default 100:
+    n_iter = int(os.getenv("BOOT_N_ITER", 100))
 
     # Get output directory from BOOT_OUTPUT_DIR environment var.
     #   or default to the current directory:

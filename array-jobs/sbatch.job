@@ -10,9 +10,12 @@
 #	The parameters to apptainer are specified by environment variables.
 #	The commands below will use the default values specified below unless
 #	these environment variables are already set. (this is what the :- means)
+#		APPTAINER_IMAGE_DIR:
+#			The directory to use for storing apptainer images
+APPTAINER_IMAGE_DIR="${APPTAINER_IMAGE_DIR:-/gscratch/scrubbed/${USER}/apptainer-images}"
 #		APPTAINER_IMAGE_PATH:
 #			The path to the apptainer image to use
-APPTAINER_IMAGE_PATH="/gscratch/scrubbed/${USER}/hpc-workshop/workshop-01/workshop-01_latest.sif"
+APPTAINER_IMAGE_PATH="${APPTAINER_IMAGE_PATH:-${APPTAINER_IMAGE_DIR}/array-jobs.sif}"
 
 # SCRIPT SETUP:
 # The parameters to the Python script cam be specified by environment variables.
@@ -40,14 +43,16 @@ fi
 # Load the latest version of apptainer:
 module load apptainer/local
 
+# Make the image directory if it doesn't exist:
+mkdir -p "${APPTAINER_IMAGE_DIR}"
+
 # If the image doesn't exist, build it:
 #   (We use the --disable-cache option to avoid filling up your home directory.)
-if ! [[ -f "${APPTAINER_IMAGE_PATH:-}" ]]; then
-	srun --exclusive apptainer build \
+[[ -f "${APPTAINER_IMAGE_PATH:-}" ]] ||
+	apptainer build \
 		--disable-cache \
 		"${APPTAINER_IMAGE_PATH}" \
 		Singularity
-fi
 
 # Append the /gscratch directory Apptainer's bind path so that we can access it:
 export APPTAINER_BINDPATH="${APPTAINER_BINDPATH:+${APPTAINER_BINDPATH}:}/gscratch"
@@ -59,7 +64,7 @@ TASK_LOG_DIR="log/${RUN_SCRIPT%%.py}-n${BOOT_N_ITER}-${SLURM_ARRAY_JOB_ID:-${SLU
 mkdir -p "${TASK_LOG_DIR}" # Create log directory if not exists
 
 # Set the output file to be the job name with the array index (if applicable):
-export SRUN_OUTPUT="${BOOT_OUTPUT_DIR}/${SLURM_JOB_NAME:-job}${SLURM_ARRAY_TASK_ID:+-${SLURM_ARRAY_TASK_ID}}.log"
+export SRUN_OUTPUT="${TASK_LOG_DIR}/${SLURM_JOB_NAME:-job}${SLURM_ARRAY_TASK_ID:+-${SLURM_ARRAY_TASK_ID}}.log"
 
 # Run the script, passing along any arguments:
 srun apptainer exec "${APPTAINER_IMAGE_PATH}" python "${RUN_SCRIPT}" "${@}"

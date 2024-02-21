@@ -34,7 +34,6 @@ export BOOT_INPUT_PATH="../data/sapa_scored_subset.csv.gz"
 #			The number of bootstrap iterations to run
 export BOOT_N_ITER=100
 
-
 #		BOOT_OUTPUT_DIR:
 #			The directory to write the output to
 # Set the output directory based on the Python script, the number of iterations,
@@ -43,7 +42,7 @@ export BOOT_OUTPUT_DIR="output/${RUN_SCRIPT%%.py}/${SLURM_JOB_ID}"
 mkdir -p "${BOOT_OUTPUT_DIR}" # Create the output directory
 
 # COMMANDS:
-# Load the latest version of apptainer:
+# Load the latest version of apptainer (will usually be loaded already):
 module load apptainer/local
 
 # Make the image directory if it doesn't exist:

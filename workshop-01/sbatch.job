@@ -51,7 +51,7 @@ mkdir -p "${APPTAINER_IMAGE_DIR}"
 # If the image doesn't exist, build it:
 #   (We use the --disable-cache option to avoid filling up your home directory.)
 if ! [[ -f "${APPTAINER_IMAGE_PATH:-}" ]]; then
-	apptainer build --disable-cache "${APPTAINER_IMAGE_PATH}" Singularity
+	srun --exclusive apptainer build --disable-cache "${APPTAINER_IMAGE_PATH}" Singularity
 fi
 
 # Append the /gscratch directory Apptainer's bind path so that we can access it:

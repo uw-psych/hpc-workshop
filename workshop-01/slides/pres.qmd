@@ -1,6 +1,6 @@
 ---
 title: "HPC Workshop 1"
-format: pptx
+format: revealjs
 ---
 
 ## HPC Workshop 1
@@ -97,9 +97,25 @@ pwd # Display current directory
     -   Use interactively to run commands
     -   Write scripts to automate tasks
 
-::: callout-tip
-In `bash`, anything after `#` is a comment (like Python, R)
-:::
+## bash
+
+### Comments
+
+In `bash`, anything after `#` is a comment (like Python, R).
+
+### Environment variables
+
+**Environment variables** help pass inputs to a script. Set environment variables with:
+``` bash
+# Make sure to use quotes and do not put spaces aside '=':
+VARIABLE="Something like this" 
+# Print the value to the screen:
+echo "$VARIABLE" 
+# More precise syntax - helps avoid some wild issues:
+echo "${VARIABLE}" 
+ # Make VARIABLE available to subsequent external commands:
+export VARIABLE
+```
 
 ## bash: History and Completion
 
@@ -157,7 +173,7 @@ pip3.9 install --user tldr
 tldr ls
 ```
 
-<!-- img tldr.png -->
+![](tldr.png) <!-- img nano.png -->
 
 ## `ranger`
 
@@ -258,7 +274,7 @@ salloc \
     --cpus-per-task=1
 ```
 
-This will submit a request for an interactive session to the SLURM scheduler. You may have to wait for resources to become available -- use `squeue` to check the status of your request.
+You may have to wait for resources to become available -- use `squeue` to check the status of your request.
 
 ## Running commands in an interactive session
 
@@ -295,7 +311,7 @@ Do you have any questions about what we've covered so far?
 library(tidyverse, quietly = TRUE)
 library(magrittr, quietly = TRUE)
 options(tidyverse.quiet = TRUE)
-f <- readr::read_csv("data/sapa_scored_subset.csv.gz", progress = FALSE, show_col_types = FALSE)
+f <- readr::read_csv("../../data/sapa_scored_subset.csv.gz", progress = FALSE, show_col_types = FALSE)
 ```
 
 -   `r nrow(f)` rows, `r ncol(f)` cols -- each row an individual subject
@@ -415,6 +431,7 @@ In an interactive session, run:
 
 ``` bash
 cd /gscratch/scrubbed/$USER # Go to your scratch directory
+cd hpc-workshop/workshop-01 # Move into the workshop-01 directory
 apptainer pull oras://ghcr.io/uw-psych/hpc-workshop/workshop-01:latest
 ls # List the contents of the directory
 ```
@@ -425,10 +442,10 @@ This will download the container image to your scratch directory under the name 
 
 The container image contains everything we need to run our Python script: namely the `python` interpreter and the `polars` and `tqdm` packages.
 
-To run the Python script inside the container, use the `apptainer run` command:
+To run the Python script inside the container, use the `apptainer exec` command:
 
 ``` bash
-apptainer run workshop-01_latest.sif python
+apptainer exec workshop-01_latest.sif python
 ```
 
 This will start an interactive session inside the container, where you can run the Python script as if you were running it on your local machine.
@@ -438,7 +455,7 @@ This will start an interactive session inside the container, where you can run t
 We're ready to run the script! Let's give it a try:
 
 ``` bash
-apptainer run workshop-01_latest.sif python single-job.py
+apptainer exec workshop-01_latest.sif python single-job.py
 ```
 
 ...oops! We forgot to specify the input file. Let's try again:
@@ -447,18 +464,18 @@ apptainer run workshop-01_latest.sif python single-job.py
 # Set the BOOT_INPUT_PATH environment variable:
 export BOOT_INPUT_PATH=/gscratch/scrubbed/$USER/hpc-workshop/data/sapa_scored_subset.csv.gz
 # Run the script again:
-apptainer run workshop-01_latest.sif python single-job.py
+apptainer exec workshop-01_latest.sif python single-job.py
 ```
 
-Still not working -- Apptainer can't find the input file. This is because the container is isolated from the /gscratch directory.
+Still not working -- Apptainer can't find the input file. This is because the container is isolated from the `/gscratch` directory.
 
 ## Binding `/gscratch`
 
-We need to bind the /gscratch directory to the container, which you can do by setting the environment variable `APPTAINER_BINDPATH`:
+We need to bind the `/gscratch` directory to the container, which you can do by setting the environment variable `APPTAINER_BINDPATH`:
 
 ``` bash
 export APPTAINER_BINDPATH=/gscratch
-apptainer run workshop-01_latest.sif python single-job.py
+apptainer exec workshop-01_latest.sif python single-job.py
 ```
 
 Now we're talking. The script is running, and we can see the progress bar from `tqdm` as the script runs.

@@ -3,7 +3,7 @@
 # Compute Cohen's D by group for Big 5 input file according to command-line arguments
 
 # Install `boot` if needed:
-if (!requireNamespace("boot", quietly = TRUE)) install.packages("boot") requireNamespace("boot", quietly = TRUE)
+if (!requireNamespace("boot", quietly = TRUE)) install.packages("boot"); requireNamespace("boot", quietly = TRUE)
 
 #
 # Calculate Cohen's D

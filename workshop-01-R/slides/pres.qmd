@@ -315,7 +315,7 @@ cd "$_"
 # Download the image to the file r-latest.sif:
 apptainer pull --disable-cache r-latest.sif docker://r-base:latest
 
-# Launch R:
+# Launch R (making sure to add /gscratch so the container can access it):
 apptainer exec --bind /gscratch r-latest.sif R
 ```
 
@@ -393,7 +393,7 @@ ls
 
 ## Setup (cont.)
 
-We will use a R script for our computations -- `workshop-01/split-job.py`:
+We will use a R script for our computations -- `workshop-01/split-R`:
 
 ``` bash
 cd workshop-01-R
@@ -504,7 +504,7 @@ cd /gscratch/scrubbed/$USER/hpc-workshop/workshop-01-R
 Submit an array job to SLURM using the `sbatch` command, using the `ckpt` paritition:
 
 ``` bash
-sbatch --account escience --partition ckpt sbatch.job
+sbatch --account escience --partition ckpt sbatch-r.job
 ```
 
 ## Monitoring the job

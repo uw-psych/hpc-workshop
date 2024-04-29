@@ -22,9 +22,9 @@ APPTAINER_IMAGE_PATH="/gscratch/scrubbed/${USER}/r-latest.sif"
 # They must be exported so that they are visible to the R script.
 #	The commands below will use the default values specified below unless
 #	these environment variables are already set. (this is what the :- means)
-#		BOOT_N_ITER:
+#		BOOT_ITER:
 #			The number of bootstrap iterations to run
-export BOOT_N_ITER="${BOOT_N_ITER:-1000}"
+export BOOT_ITER="${BOOT_ITER:-1000}"
 
 # COMMANDS:
 # Load the latest version of apptainer:

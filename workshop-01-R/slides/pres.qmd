@@ -351,6 +351,12 @@ f <- readr::read_csv("../../data/psych_bfi_scored.csv", progress = FALSE, show_c
 ```
 
 -   `r nrow(f)` rows, `r ncol(f)` cols -- each row an individual subject
+
+## Dataset
+
+-   `r nrow(f)` rows, `r ncol(f)` cols -- each row an individual subject
+-   1 demographic column (`gender`) with 2 genders coded
+
 -   1 demographic column (`gender`) with 2 genders coded
 -   5 columns of scored personality scales:
     -   Agreeableness (`agree`)
@@ -428,21 +434,6 @@ The following defines metadata and resources to request to run the job. These pa
 
 ## Environment variables
 
-We use an **environment variable** to define where we want to store the Apptainer image file and how many iterations to run:
-
-```sh
-#	The parameters to apptainer are specified by environment variables.
-#	The commands below will use the default values specified below unless
-#	these environment variables are already set. (this is what the :- means)
-#		R_IMAGE:
-#			The path to the apptainer image to use
-R_IMAGE="/gscratch/scrubbed/${USER}/r-latest.sif"
-
-# Create the base directory for the image:
-mkdir -p "$(dirname "R_IMAGE")"
-```
-
-## Environment variables (cont.)
 
 We use another **environment variable** to define how many iterations to run:
 ```sh
@@ -458,11 +449,11 @@ export BOOT_ITER="${BOOT_ITER:-10000}"
 
 ## Downloading the image 
 
-The following downloads the image to the location `$R_IMAGE`, unless it exists already (which `||` allows):
+The following downloads the image, unless it exists already at the location (which `||` allows):
 
 ```sh
 apptainer pull --disable-cache \
-  "$R_IMAGE" docker://r-base:latest 2>/dev/null \
+   "/gscratch/scrubbed/${USER}/r-base_latest.sif" docker://r-base:latest 2>/dev/null \
     || echo "Image already exists. Continuing." >&2
 ```
 
@@ -476,7 +467,7 @@ for x in "agree" "conscientious" "extraversion"  "neuroticism" "openness"; do
   srun -N1 -n1 --exclusive \
     apptainer exec \
       --bind /gscratch \
-      "$R_IMAGE" \
+      "/gscratch/scrubbed/${USER}/r-base_latest.sif" \
       Rscript split-job.R ../data/psych_bfi_scored.csv "$x" &
 done
 ```
@@ -501,11 +492,15 @@ Navigate to the `workshop-01-R` directory if you're not already there:
 cd /gscratch/scrubbed/$USER/hpc-workshop/workshop-01-R
 ```
 
-Submit an array job to SLURM using the `sbatch` command, using the `ckpt` paritition:
+Submit an array job to SLURM using the `sbatch` command, using the `gpu-a40` paritition:
 
 ``` bash
-sbatch --account escience --partition ckpt sbatch-r.job
+sbatch --account escience --partition gpu-a40 sbatch-r.job
 ```
+
+::: callout-tip
+Try the checkpoint partition `ckpt` for really short jobs
+:::
 
 ## Monitoring the job
 

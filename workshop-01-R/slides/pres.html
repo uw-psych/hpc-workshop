@@ -733,7 +733,7 @@
 <span id="cb12-7"><a href=""></a><span class="co"># Download the image to the file r-latest.sif:</span></span>
 <span id="cb12-8"><a href=""></a><span class="ex">apptainer</span> pull <span class="at">--disable-cache</span> r-latest.sif docker://r-base:latest</span>
 <span id="cb12-9"><a href=""></a></span>
-<span id="cb12-10"><a href=""></a><span class="co"># Launch R:</span></span>
+<span id="cb12-10"><a href=""></a><span class="co"># Launch R (making sure to add /gscratch so the container can access it):</span></span>
 <span id="cb12-11"><a href=""></a><span class="ex">apptainer</span> exec <span class="at">--bind</span> /gscratch r-latest.sif R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section>
@@ -766,8 +766,15 @@
 </ul>
 <ul>
 <li>2800 rows, 6 cols – each row an individual subject</li>
-<li>1 demographic column (<code>gender</code>) with 2 genders coded</li>
-<li>5 columns of scored personality scales:
+</ul>
+</section>
+<section id="dataset-1" class="slide level2">
+<h2>Dataset</h2>
+<ul>
+<li><p>2800 rows, 6 cols – each row an individual subject</p></li>
+<li><p>1 demographic column (<code>gender</code>) with 2 genders coded</p></li>
+<li><p>1 demographic column (<code>gender</code>) with 2 genders coded</p></li>
+<li><p>5 columns of scored personality scales:</p>
 <ul>
 <li>Agreeableness (<code>agree</code>)</li>
 <li>Conscientiousness (<code>conscientious</code>)</li>
@@ -806,7 +813,7 @@
 </section>
 <section id="setup-cont." class="slide level2">
 <h2>Setup (cont.)</h2>
-<p>We will use a R script for our computations – <code>workshop-01/split-job.py</code>:</p>
+<p>We will use a R script for our computations – <code>workshop-01/split-R</code>:</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href=""></a><span class="bu">cd</span> workshop-01-R</span>
 <span id="cb15-2"><a href=""></a><span class="fu">ls</span> <span class="co"># List contents of directory</span></span>
 <span id="cb15-3"><a href=""></a><span class="fu">nano</span> split-job.R <span class="co"># View the contents of the file</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -837,68 +844,68 @@
 </section>
 <section id="environment-variables-1" class="slide level2">
 <h2>Environment variables</h2>
-<p>We use an <strong>environment variable</strong> to define where we want to store the Apptainer image file and how many iterations to run:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb17-1"><a href=""></a><span class="co">#   The parameters to apptainer are specified by environment variables.</span></span>
-<span id="cb17-2"><a href=""></a><span class="co">#   The commands below will use the default values specified below unless</span></span>
-<span id="cb17-3"><a href=""></a><span class="co">#   these environment variables are already set. (this is what the :- means)</span></span>
-<span id="cb17-4"><a href=""></a><span class="co">#       R_IMAGE:</span></span>
-<span id="cb17-5"><a href=""></a><span class="co">#           The path to the apptainer image to use</span></span>
-<span id="cb17-6"><a href=""></a><span class="va">R_IMAGE</span><span class="op">=</span><span class="st">"/gscratch/scrubbed/</span><span class="va">${USER}</span><span class="st">/r-latest.sif"</span></span>
-<span id="cb17-7"><a href=""></a></span>
-<span id="cb17-8"><a href=""></a><span class="co"># Create the base directory for the image:</span></span>
-<span id="cb17-9"><a href=""></a><span class="fu">mkdir</span> <span class="at">-p</span> <span class="st">"</span><span class="va">$(</span><span class="fu">dirname</span> <span class="st">"R_IMAGE"</span><span class="va">)</span><span class="st">"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-<section id="environment-variables-cont." class="slide level2">
-<h2>Environment variables (cont.)</h2>
 <p>We use another <strong>environment variable</strong> to define how many iterations to run:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb18-1"><a href=""></a><span class="co"># SCRIPT SETUP:</span></span>
-<span id="cb18-2"><a href=""></a><span class="co"># The parameters to the R script cam be specified by environment variables.</span></span>
-<span id="cb18-3"><a href=""></a><span class="co"># They must be exported so that they are visible to the R script.</span></span>
-<span id="cb18-4"><a href=""></a><span class="co">#   The commands below will use the default values specified below unless</span></span>
-<span id="cb18-5"><a href=""></a><span class="co">#   these environment variables are already set. (this is what the :- means)</span></span>
-<span id="cb18-6"><a href=""></a><span class="co">#       BOOT_ITER:</span></span>
-<span id="cb18-7"><a href=""></a><span class="co">#           The number of bootstrap iterations to run</span></span>
-<span id="cb18-8"><a href=""></a><span class="bu">export</span> <span class="va">BOOT_ITER</span><span class="op">=</span><span class="st">"</span><span class="va">${BOOT_ITER</span><span class="op">:-</span>10000<span class="va">}</span><span class="st">"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb17-1"><a href=""></a><span class="co"># SCRIPT SETUP:</span></span>
+<span id="cb17-2"><a href=""></a><span class="co"># The parameters to the R script cam be specified by environment variables.</span></span>
+<span id="cb17-3"><a href=""></a><span class="co"># They must be exported so that they are visible to the R script.</span></span>
+<span id="cb17-4"><a href=""></a><span class="co">#   The commands below will use the default values specified below unless</span></span>
+<span id="cb17-5"><a href=""></a><span class="co">#   these environment variables are already set. (this is what the :- means)</span></span>
+<span id="cb17-6"><a href=""></a><span class="co">#       BOOT_ITER:</span></span>
+<span id="cb17-7"><a href=""></a><span class="co">#           The number of bootstrap iterations to run</span></span>
+<span id="cb17-8"><a href=""></a><span class="bu">export</span> <span class="va">BOOT_ITER</span><span class="op">=</span><span class="st">"</span><span class="va">${BOOT_ITER</span><span class="op">:-</span>10000<span class="va">}</span><span class="st">"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="downloading-the-image" class="slide level2">
 <h2>Downloading the image</h2>
-<p>The following downloads the image to the location <code>$R_IMAGE</code>, unless it exists already (which <code>||</code> allows):</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb19-1"><a href=""></a><span class="ex">apptainer</span> pull <span class="at">--disable-cache</span> <span class="dt">\</span></span>
-<span id="cb19-2"><a href=""></a>  <span class="st">"</span><span class="va">$R_IMAGE</span><span class="st">"</span> docker://r-base:latest <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="dt">\</span></span>
-<span id="cb19-3"><a href=""></a>    <span class="kw">||</span> <span class="bu">echo</span> <span class="st">"Image already exists. Continuing."</span> <span class="op">&gt;&amp;</span><span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The following downloads the image, unless it exists already at the location (which <code>||</code> allows):</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb18-1"><a href=""></a><span class="ex">apptainer</span> pull <span class="at">--disable-cache</span> <span class="dt">\</span></span>
+<span id="cb18-2"><a href=""></a>   <span class="st">"/gscratch/scrubbed/</span><span class="va">${USER}</span><span class="st">/r-base_latest.sif"</span> docker://r-base:latest <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="dt">\</span></span>
+<span id="cb18-3"><a href=""></a>    <span class="kw">||</span> <span class="bu">echo</span> <span class="st">"Image already exists. Continuing."</span> <span class="op">&gt;&amp;</span><span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="running-the-jobs" class="slide level2">
 <h2>Running the jobs</h2>
 <p>Here, we launch a job for each category we want to compute on:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href=""></a><span class="cf">for</span> x <span class="kw">in</span> <span class="st">"agree"</span> <span class="st">"conscientious"</span> <span class="st">"extraversion"</span>  <span class="st">"neuroticism"</span> <span class="st">"openness"</span><span class="kw">;</span> <span class="cf">do</span></span>
-<span id="cb20-2"><a href=""></a>  <span class="bu">echo</span> <span class="st">"Launching job for </span><span class="va">$x</span><span class="st">"</span> <span class="op">&gt;&amp;</span><span class="dv">2</span></span>
-<span id="cb20-3"><a href=""></a>  <span class="ex">srun</span> <span class="at">-N1</span> <span class="at">-n1</span> <span class="at">--exclusive</span> <span class="dt">\</span></span>
-<span id="cb20-4"><a href=""></a>    apptainer exec <span class="dt">\</span></span>
-<span id="cb20-5"><a href=""></a>      <span class="at">--bind</span> /gscratch <span class="dt">\</span></span>
-<span id="cb20-6"><a href=""></a>      <span class="st">"</span><span class="va">$R_IMAGE</span><span class="st">"</span> <span class="dt">\</span></span>
-<span id="cb20-7"><a href=""></a>      Rscript split-job.R ../data/psych_bfi_scored.csv <span class="st">"</span><span class="va">$x</span><span class="st">"</span> <span class="kw">&amp;</span></span>
-<span id="cb20-8"><a href=""></a><span class="cf">done</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb19-1"><a href=""></a><span class="cf">for</span> x <span class="kw">in</span> <span class="st">"agree"</span> <span class="st">"conscientious"</span> <span class="st">"extraversion"</span>  <span class="st">"neuroticism"</span> <span class="st">"openness"</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb19-2"><a href=""></a>  <span class="bu">echo</span> <span class="st">"Launching job for </span><span class="va">$x</span><span class="st">"</span> <span class="op">&gt;&amp;</span><span class="dv">2</span></span>
+<span id="cb19-3"><a href=""></a>  <span class="ex">srun</span> <span class="at">-N1</span> <span class="at">-n1</span> <span class="at">--exclusive</span> <span class="dt">\</span></span>
+<span id="cb19-4"><a href=""></a>    apptainer exec <span class="dt">\</span></span>
+<span id="cb19-5"><a href=""></a>      <span class="at">--bind</span> /gscratch <span class="dt">\</span></span>
+<span id="cb19-6"><a href=""></a>      <span class="st">"/gscratch/scrubbed/</span><span class="va">${USER}</span><span class="st">/r-base_latest.sif"</span> <span class="dt">\</span></span>
+<span id="cb19-7"><a href=""></a>      Rscript split-job.R ../data/psych_bfi_scored.csv <span class="st">"</span><span class="va">$x</span><span class="st">"</span> <span class="kw">&amp;</span></span>
+<span id="cb19-8"><a href=""></a><span class="cf">done</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="combining-the-output" class="slide level2">
 <h2>Combining the output</h2>
 <p>Once the job is done, we need to assemble the output. We have a separate script for that – <code>merge-outputs.R</code>:</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb21-1"><a href=""></a><span class="ex">srun</span> <span class="at">-N1</span> <span class="at">-n1</span> <span class="at">--exclusive</span> <span class="dt">\</span></span>
-<span id="cb21-2"><a href=""></a>  apptainer exec <span class="dt">\</span></span>
-<span id="cb21-3"><a href=""></a>    <span class="at">--bind</span> /gscratch <span class="dt">\</span></span>
-<span id="cb21-4"><a href=""></a>    <span class="st">"</span><span class="va">$R_IMAGE</span><span class="st">"</span> <span class="dt">\</span></span>
-<span id="cb21-5"><a href=""></a>    Rscript merge-outputs.R output/combined.csv output/<span class="pp">*</span>.csv</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href=""></a><span class="ex">srun</span> <span class="at">-N1</span> <span class="at">-n1</span> <span class="at">--exclusive</span> <span class="dt">\</span></span>
+<span id="cb20-2"><a href=""></a>  apptainer exec <span class="dt">\</span></span>
+<span id="cb20-3"><a href=""></a>    <span class="at">--bind</span> /gscratch <span class="dt">\</span></span>
+<span id="cb20-4"><a href=""></a>    <span class="st">"</span><span class="va">$R_IMAGE</span><span class="st">"</span> <span class="dt">\</span></span>
+<span id="cb20-5"><a href=""></a>    Rscript merge-outputs.R output/combined.csv output/<span class="pp">*</span>.csv</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="submitting-the-job" class="slide level2">
 <h2>Submitting the job</h2>
 <p>Navigate to the <code>workshop-01-R</code> directory if you’re not already there:</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb22-1"><a href=""></a><span class="bu">cd</span> /gscratch/scrubbed/<span class="va">$USER</span>/hpc-workshop/workshop-01-R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Submit an array job to SLURM using the <code>sbatch</code> command, using the <code>ckpt</code> paritition:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb23-1"><a href=""></a><span class="ex">sbatch</span> <span class="at">--account</span> escience <span class="at">--partition</span> ckpt sbatch.job</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb21-1"><a href=""></a><span class="bu">cd</span> /gscratch/scrubbed/<span class="va">$USER</span>/hpc-workshop/workshop-01-R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Submit an array job to SLURM using the <code>sbatch</code> command, using the <code>gpu-a40</code> paritition:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb22-1"><a href=""></a><span class="ex">sbatch</span> <span class="at">--account</span> escience <span class="at">--partition</span> gpu-a40 sbatch-r.job</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Tip</strong></p>
+</div>
+<div class="callout-content">
+<p>Try the checkpoint partition <code>ckpt</code> for really short jobs</p>
+</div>
+</div>
+</div>
 </section>
 <section id="monitoring-the-job" class="slide level2">
 <h2>Monitoring the job</h2>
 <p>As usual, you can use the <code>squeue</code> command to monitor the status of your job:</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb24-1"><a href=""></a><span class="ex">squeue</span> <span class="at">--me</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb23-1"><a href=""></a><span class="ex">squeue</span> <span class="at">--me</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>But there’s another way you can track progress in real time…</p>
 </section>
 <section id="log-files" class="slide level2">
@@ -908,7 +915,7 @@
 <li>Files with the extension <code>.log</code> contain what the job would print to the screen</li>
 <li>Read log files to track the progress of the individual jobs in the array with <code>tail -f</code>:</li>
 </ul>
-<div class="sourceCode" id="cb25"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb25-1"><a href=""></a><span class="fu">tail</span> <span class="at">-f</span> job.log</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb24-1"><a href=""></a><span class="fu">tail</span> <span class="at">-f</span> job.log</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Press <code>Ctrl</code> + <code>D</code> to stop following the log files.</p>
 </section>
 <section id="getting-the-results" class="slide level2">

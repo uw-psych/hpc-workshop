@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #SBATCH --output=job.log
-#SBATCH --job-name=sapa_bootstats
-#SBATCH --ntasks=5
+#SBATCH --job-name=psych_bfi_boot
+#SBATCH --nodes=5
+#SBATCH --mem=8G
+#SBATCH --time=1:00:00
 
 # This is a SLURM job script for running the ipip_bootstats tutorial with
 #	Apptainer. It is intended to be run on the Klone cluster at the University
@@ -35,19 +37,22 @@ mkdir -p "/gscratch/scrubbed/${USER}"
 #   (--exclusive is used to ensure that the build process completes before the computations start)
 #   (We use the --disable-cache option to avoid filling up your home directory)
 echo "Downloading R..." >&2
-apptainer pull --disable-cache "/gscratch/scrubbed/${USER}/r-base_latest.sif" docker://r-base:latest || echo "Image already exists. Continuing." >&2
+apptainer pull --disable-cache "/gscratch/scrubbed/${USER}/r-base_latest.sif" docker://r-base:latest 2>/dev/null || echo "Image already exists. Continuing." >&2
 
+# Quit on error:
+set -e
 
 for x in "agree" "conscientious" "extraversion"  "neuroticism" "openness"; do
   echo "Launching job for $x" >&2
-  srun -n1 --exclusive apptainer exec --bind /gscratch "/gscratch/scrubbed/${USER}/r-base_latest.sif" Rscript split-job.R "$x" &
+  srun -N1 -n1 --exclusive apptainer exec --bind /gscratch "/gscratch/scrubbed/${USER}/r-base_latest.sif" Rscript split-job.R ../data/psych_bfi_scored.csv "$x" &
 done
-wait
+
+wait # Wait for jobs to complete
 
 echo "Done with jobs" >&2
 
 # Combine the outputs:
-srun -n1 --exclusive apptainer exec --bind /gscratch "/gscratch/scrubbed/${USER}/r-base_latest.sif" Rscript merge-outputs.R output/combined.csv output/*.csv
+srun -N1 -n1 --exclusive apptainer exec --bind /gscratch "/gscratch/scrubbed/${USER}/r-base_latest.sif" Rscript merge-outputs.R output/combined.csv output/*.csv
 
 echo "Output is ready at output/combined.csv" >&2
 

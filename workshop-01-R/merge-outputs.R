@@ -12,6 +12,6 @@ results <- do.call(rbind, lapply(input_filenames, read.csv))
 write.csv(results, output_filename, row.names = FALSE)
 
 # Remove input files:
-invisible(lapply(input_files, file.remove))
+invisible(lapply(input_filenames, file.remove))
 
-message("Wrote result to ", output_file)
+message("Wrote result to ", output_filename)

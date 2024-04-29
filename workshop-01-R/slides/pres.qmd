@@ -1,9 +1,9 @@
 ---
-title: "HPC Workshop 1"
+title: "HPC Workshop (R)"
 format: revealjs
 ---
 
-## HPC Workshop 1
+## HPC Workshop (R)
 
 Welcome to this workshop on High Performance Computing (HPC) using the University of Washington's Hyak cluster. This workshop is designed to give you a basic understanding of how to use the cluster for your research using a practical example of running a computationally intensive bootstrap for data analysis.
 
@@ -14,6 +14,12 @@ Welcome to this workshop on High Performance Computing (HPC) using the Universit
 -   Learn how to submit jobs to the cluster and manage them
 -   Wrap your analysis in an Apptainer container for reproducibility and portability
 -   See how you can use array jobs to accelerate your analysis
+
+## More resources
+
+-   <https://uw-psych.github.io/compute_docs>
+-   <https://hyak.uw.edu/docs>
+-   <https://www.hpc-carpentry.org>
 
 ## What is an HPC cluster?
 
@@ -286,7 +292,37 @@ hostname
 
 Any commands you run in the interactive session will be run on the compute node you are on and will not affect the login node.
 
-If you run `exit` or `Ctrl` + `D`, the interactive session will end.
+
+## Apptainer
+
+- We need to use Apptainer (f.k.a. Singularity) to run R on Hyak
+- Apptainer is a tool for creating and running software containers (like Docker, Podman)
+- Containers help you package an application and its dependencies so that it can run consistently (and reproducibly) across different environments
+- An Apptainer container is like a lightweight, portable, and self-contained virtual machine -- c.f., VirtualBox, VMware, Parallels, etc.
+
+
+## Running R interactively
+
+In the interactive session, we can download and run R as follows:
+
+```bash
+# Create the directory to store your things if it isn't there:
+mkdir -p "/gscratch/scrubbed/$USER"
+
+# Go to the directory:
+cd "$_"
+
+# Download the image to the file r-latest.sif:
+apptainer pull --disable-cache r-latest.sif docker://r-base:latest
+
+# Launch R:
+apptainer exec --bind /gscratch r-latest.sif R
+```
+
+# Exiting
+
+- Exit R as normal
+- When you're back in the shell, If you run `exit` or `Ctrl` + `D`, the interactive session will end
 
 ## Questions?
 
@@ -305,73 +341,46 @@ Do you have any questions about what we've covered so far?
 
 ## Dataset
 
--   Personality data from the SAPA project ("Synthetic Aperture Personality Assessment," Revelle, W.)
+-   Personality data from the SAPA project ("Synthetic Aperture Personality Assessment," Revelle, W.) from `psychTools`
 
 ```{r, echo=FALSE}
 library(tidyverse, quietly = TRUE)
 library(magrittr, quietly = TRUE)
 options(tidyverse.quiet = TRUE)
-f <- readr::read_csv("../../data/sapa_scored_subset.csv.gz", progress = FALSE, show_col_types = FALSE)
+f <- readr::read_csv("../../data/psych_bfi_scored.csv", progress = FALSE, show_col_types = FALSE)
 ```
 
 -   `r nrow(f)` rows, `r ncol(f)` cols -- each row an individual subject
--   Demographics:
-    -   `collected` (date of data collection)
-    -   `age`, `gender`, `country`
-    -   `relstatus`, `marstatus`
-    -   `exer`\[cise\], `smoke`,
-    -   `education`, `jobstatus`
-
-## Dataset
-
--   10 columns of scored personality scales for `IPIP50` and `IPIP100`:
-    -   Agreeableness
-    -   Conscientiousness
-    -   Extraversion
-    -   Emotional Stability
-    -   Openness/Intellect
+-   1 demographic column (`gender`) with 2 genders coded
+-   5 columns of scored personality scales:
+    -   Agreeableness (`agree`)
+    -   Conscientiousness (`conscientious`)
+    -   Extraversion (`extraversion`)
+    -   Neuroticism (`neuroticism`)
+    -   Openness (`openness`)
 
 ## Goal
 
 ::: columns
 ::: {.column width="40%"}
--   Estimate the 95% confidence interval for the means and medians of the personality scales, grouped by categories, using the bootstrap
+-   Estimate the 95% confidence interval for Cohen's *d* of the mean difference among two genders using the bootstrap
 :::
 
 ::: {.column width="60%"}
-``` python
-    categories = (
-        "collected",
-        "gender",
-        "relstatus",
-        "marstatus",
-        "exer",
-        "smoke",
-        "country",
-        "education",
-        "jobstatus",
-        ("gender", "smoke"),
-        ("education", "smoke"),
-        ("gender", "relstatus"),
-    )
-```
-:::
-:::
-
-## Bootstrapping procedure
-
 -   For each category, resample the data with replacement
--   Calculate the mean and median for each resample
+-   Calculate Cohen's *d*
 -   Repeat this process many times (e.g., 10,000 times)
--   Use the distribution of means and medians to estimate the 95% confidence interval
+-   Use the distribution to estimate the 95% confidence interval using `boot`
+:::
+:::
 
 ## Setup
 
 Create a new directory for the project under /gscratch/scrubbed/your-uw-netid:
 
-``` bash
-mkdir -p /gscratch/scrubbed/$USER
-cd $_ # Go to the new directory
+```sh
+mkdir -p "/gscratch/scrubbed/$USER"
+cd "$_" # Go to the new directory
 ```
 
 Download the project files from GitHub, navigate to the project directory, and list the contents:
@@ -384,133 +393,13 @@ ls
 
 ## Setup (cont.)
 
-We will use a Python script for our computations -- `workshop-01/single-job.py`:
+We will use a R script for our computations -- `workshop-01/split-job.py`:
 
 ``` bash
-cd workshop-01
-ls
-less single-job.py # View the contents of the file
+cd workshop-01-R
+ls # List contents of directory
+nano split-job.R # View the contents of the file
 ```
-
-## Python and dependencies
-
-The script relies on the third-party Python packages:
-
--   `polars`: like a very fast R `dplyr` for Python
--   `tqdm`: a progress bar for Python
-
-We also want to specify a recent version of Python to use: on Hyak, we only have Python 3.6 and 3.9.
-
-## Apptainer
-
--   Managing Python and its dependencies can be a headache 🤯
--   Many tools: `conda`, `virtualenv`, `pip`, `poetry`, `pipenv`, etc.
--   ...but these are not always available and reproducible across different systems
-
-## Apptainer (cont.)
-
--   A software container is a way to package up an application and its dependencies so that it can run consistently across different environments
--   Apptainer (f.k.a. Singularity) is a tool for creating and managing software containers that is installed on the Hyak cluster
--   An Apptainer container is like a lightweight, portable, and self-contained virtual machine -- e.g., VirtualBox, VMware, Parallels, etc.
-
-## Definition file
-
--   We will use Apptainer to create a container for our Python script
--   The `Singularity` file in the `workshop-01` directory contains the definition for the Apptainer container
--   `requirements.txt` contains the Python dependencies for the container
--   We will build the container on the cluster and use it to run our Python script
-
-## Building the container
-
--   Need a compute node to use Apptainer
--   For this workshop, we will use a pre-built container image
-
-## Download the pre-built container
-
-In an interactive session, run:
-
-``` bash
-cd /gscratch/scrubbed/$USER # Go to your scratch directory
-cd hpc-workshop/workshop-01 # Move into the workshop-01 directory
-apptainer pull oras://ghcr.io/uw-psych/hpc-workshop/workshop-01:latest
-ls # List the contents of the directory
-```
-
-This will download the container image to your scratch directory under the name `workshop-01_latest.sif`.
-
-## Running the container
-
-The container image contains everything we need to run our Python script: namely the `python` interpreter and the `polars` and `tqdm` packages.
-
-To run the Python script inside the container, use the `apptainer exec` command:
-
-``` bash
-apptainer exec workshop-01_latest.sif python
-```
-
-This will start an interactive session inside the container, where you can run the Python script as if you were running it on your local machine.
-
-## Running the script
-
-We're ready to run the script! Let's give it a try:
-
-``` bash
-apptainer exec workshop-01_latest.sif python single-job.py
-```
-
-...oops! We forgot to specify the input file. Let's try again:
-
-``` bash
-# Set the BOOT_INPUT_PATH environment variable:
-export BOOT_INPUT_PATH=/gscratch/scrubbed/$USER/hpc-workshop/data/sapa_scored_subset.csv.gz
-# Run the script again:
-apptainer exec workshop-01_latest.sif python single-job.py
-```
-
-Still not working -- Apptainer can't find the input file. This is because the container is isolated from the `/gscratch` directory.
-
-## Binding `/gscratch`
-
-We need to bind the `/gscratch` directory to the container, which you can do by setting the environment variable `APPTAINER_BINDPATH`:
-
-``` bash
-export APPTAINER_BINDPATH=/gscratch
-apptainer exec workshop-01_latest.sif python single-job.py
-```
-
-Now we're talking. The script is running, and we can see the progress bar from `tqdm` as the script runs.
-
-## Speeding it up
-
-The script is running, but it's taking a long time to complete. The easiest way to speed it up is to re-run the script with more resources. Type `exit` to exit the container and return to the login node, and then run the following command to start an interactive session with more resources:
-
-``` bash
-salloc \
-    --account escience \
-    --partition gpu-a40 \
-    --time=1:00:00 \
-    --mem=16G \
-    --cpus-per-task=6
-```
-
-## Speeding it up
-
-Now, let's set our environment variables and run the script again:
-
-``` bash
-export BOOT_INPUT_PATH=/gscratch/scrubbed/$USER/hpc-workshop/data/sapa_scored_subset.csv.gz
-export BOOT_N_ITER=100
-export APPTAINER_BINDPATH=/gscratch
-apptainer exec workshop-01_latest.sif python single-job.py
-```
-
-That's more like it! The script is running much faster now.
-
-## Parallelizing the analysis
-
--   Script is much faster now, but we can make it even faster
--   Our problem is **embarrassingly parallel** -- we can run the same analysis on different categories independently
--   SLURM's **array job** feature is perfect for this -- we split the categories into separate jobs and run them in parallel
 
 ## Batch jobs
 
@@ -518,47 +407,105 @@ That's more like it! The script is running much faster now.
 -   `sbatch` command submits a batch job to SLURM
 -   Commands to run the job are specified in a job script
 -   Job script specifies the resources to request, the commands to run, and the environment variables to set
--   `workshop-01/sbatch.job` contains our job script
+-   `workshop-01-R/sbatch-r.job` contains our job script
 
-## Array job
+## The job script
 
--   We can run the same job on multiple categories using an array job
--   Each job in the array will run the same commands, but on a different subset of the categories
--   SLURM assigns each job in the array a different index
--   The job script can use the index to determine which categories to run the analysis on
+Have a look at the job script in `sbatch-r.job`. We will submit this to `sbatch`, which will schedule and launch our tasks.
 
-## Array job (cont.)
+## Job metadata and resources
 
--   Need to modify the Python script to determine which categories to run the analysis on
+The following defines metadata and resources to request to run the job. These parameters are defined with `#SBATCH`:
 
--   `workshop-01/array-job.py` does this by:
-
-    -   Splitting the categories into `N` groups, where `N` is the number of jobs in the array
-    -   Reading the `SLURM_ARRAY_TASK_ID` environment variable to determine which group to run the analysis on
-    -   Running the analysis on the categories in the `i`th group, where `i` is the index of the job in the array
-
-## Submitting the array job
-
-Navigate to the `workshop-01` directory if you're not already there:
-
-``` bash
-cd /gscratch/scrubbed/$USER/hpc-workshop/workshop-01
+```sh
+#!/usr/bin/env bash
+#SBATCH --output=job.log
+#SBATCH --job-name=psych_bfi_boot
+#SBATCH --nodes=5
+#SBATCH --mem=8G
+#SBATCH --time=1:00:00
 ```
 
-Submit an array job to SLURM using the `sbatch` command, requesting 4 jobs:
+## Environment variables
 
-``` bash
-sbatch \
-    --account escience \
-    --partition gpu-a40 \
-    --mem 16G \
-    --cpus-per-task 4 \
-    --time 1:00:00 \
-    --array=1-4 \
-    sbatch.job
+We use an **environment variable** to define where we want to store the Apptainer image file and how many iterations to run:
+
+```sh
+#	The parameters to apptainer are specified by environment variables.
+#	The commands below will use the default values specified below unless
+#	these environment variables are already set. (this is what the :- means)
+#		R_IMAGE:
+#			The path to the apptainer image to use
+R_IMAGE="/gscratch/scrubbed/${USER}/r-latest.sif"
+
+# Create the base directory for the image:
+mkdir -p "$(dirname "R_IMAGE")"
 ```
 
-This will submit an array job to SLURM, which will run the same analysis on 4 different subsets of the categories in parallel.
+## Environment variables (cont.)
+
+We use another **environment variable** to define how many iterations to run:
+```sh
+# SCRIPT SETUP:
+# The parameters to the R script cam be specified by environment variables.
+# They must be exported so that they are visible to the R script.
+#	The commands below will use the default values specified below unless
+#	these environment variables are already set. (this is what the :- means)
+#		BOOT_ITER:
+#			The number of bootstrap iterations to run
+export BOOT_ITER="${BOOT_ITER:-10000}"
+```
+
+## Downloading the image 
+
+The following downloads the image to the location `$R_IMAGE`, unless it exists already (which `||` allows):
+
+```sh
+apptainer pull --disable-cache \
+  "$R_IMAGE" docker://r-base:latest 2>/dev/null \
+    || echo "Image already exists. Continuing." >&2
+```
+
+## Running the jobs
+
+Here, we launch a job for each category we want to compute on:
+
+```sh
+for x in "agree" "conscientious" "extraversion"  "neuroticism" "openness"; do
+  echo "Launching job for $x" >&2
+  srun -N1 -n1 --exclusive \
+    apptainer exec \
+      --bind /gscratch \
+      "$R_IMAGE" \
+      Rscript split-job.R ../data/psych_bfi_scored.csv "$x" &
+done
+```
+
+## Combining the output
+
+Once the job is done, we need to assemble the output. We have a separate script for that -- `merge-outputs.R`:
+
+```sh
+srun -N1 -n1 --exclusive \
+  apptainer exec \
+    --bind /gscratch \
+    "$R_IMAGE" \
+    Rscript merge-outputs.R output/combined.csv output/*.csv
+```
+
+## Submitting the job
+
+Navigate to the `workshop-01-R` directory if you're not already there:
+
+``` bash
+cd /gscratch/scrubbed/$USER/hpc-workshop/workshop-01-R
+```
+
+Submit an array job to SLURM using the `sbatch` command, using the `ckpt` paritition:
+
+``` bash
+sbatch --account escience --partition ckpt sbatch.job
+```
 
 ## Monitoring the job
 
@@ -572,16 +519,12 @@ But there's another way you can track progress in real time...
 
 ## Log files
 
--   sbatch.job specifies a location for the output files and the log files for the array job
+- `sbatch-r.job` specifies a location for the output files and the log files for the array job
 -   Files with the extension `.log` contain what the job would print to the screen
 -   Read log files to track the progress of the individual jobs in the array with `tail -f`:
 
-``` bash
-# Go to the directory where the log files are stored:
-cd output/array-job/1234567 # Replace with your job ID
-# Use `tail -f` to follow the progress of the log files 
-# (* is a "wildcard" we use to select any file with the extension .log):
-tail -f *.log
+```bash
+tail -f job.log
 ```
 
 Press `Ctrl` + `D` to stop following the log files.
@@ -590,7 +533,7 @@ Press `Ctrl` + `D` to stop following the log files.
 
 Use `scp` to copy the results from the cluster to your local machine:
 
-`scp -r your-uw-netid@klone.hyak.uw.edu:/gscratch/scrubbed/your-uw-netid/hpc-workshop/workshop-01/output .`
+`scp -r your-uw-netid@klone.hyak.uw.edu:/gscratch/scrubbed/your-uw-netid/hpc-workshop/workshop-01/output/combined.csv .`
 
 ## Q&A
 

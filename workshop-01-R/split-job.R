@@ -1,5 +1,9 @@
 #!/usr/bin/env Rscript
-if (!requireNamespace("boot", quietly = TRUE)) install.packages("boot"); requireNamespace("boot", quietly = TRUE)
+
+# Compute Cohen's D by group for Big 5 input file according to command-line arguments
+
+# Install `boot` if needed:
+if (!requireNamespace("boot", quietly = TRUE)) install.packages("boot") requireNamespace("boot", quietly = TRUE)
 
 #
 # Calculate Cohen's D
@@ -15,13 +19,13 @@ cohen_d <- function(d, f) {
   m <- c()
   s <- c()
   for (l in levels(f)) {
-    m = c(m, mean(d[f == l]))
-    s = c(s, sd(d[f == l]))
+    m <- c(m, mean(d[f == l]))
+    s <- c(s, sd(d[f == l]))
   }
   delta.m <- as.numeric(m[1] - m[2])
   stdev <-
-    sqrt(((ns[1] - 1) * s[1] ^ 2 + (ns[2] - 1) * s[2] ^ 2) / (ns[1] +
-        ns[2] - 2))
+    sqrt(((ns[1] - 1) * s[1]^2 + (ns[2] - 1) * s[2]^2) / (ns[1] +
+      ns[2] - 2))
   return(list(d = delta.m / stdev, df = ns[1] + ns[2] - 2))
 }
 
@@ -34,8 +38,8 @@ cohen_d <- function(d, f) {
 #' @param indices indices to select
 #'
 #' @return numeric value with Cohen's D
-bs_cohen_d <-  function(data, response, group, indices) {
-  d <- data[indices,] # allows boot to select sample
+bs_cohen_d <- function(data, response, group, indices) {
+  d <- data[indices, ] # allows boot to select sample
   fit <- cohen_d(d[[response]], d[[group]])
   return(fit$d)
 }
@@ -48,10 +52,11 @@ bs_cohen_d <-  function(data, response, group, indices) {
 #' @param n.iter number of iterations (default: 100)
 #'
 #' @return a data frame with columns "scale", "d" (the estimate), "ci.level" (the confidence level), "ci.ll" (the lower bound), and "ci.ul" (the upper bound)
-get_cohens_d_for_scale <- function(data,
-  scale,
-  group = "gender",
-  n.iter = 1000) {
+get_cohens_d_for_scale <- function(
+    data,
+    scale,
+    group = "gender",
+    n.iter = 1000) {
   message(
     "Computing Cohen's D for scale ",
     scale,
@@ -117,7 +122,8 @@ for (scale in scales) {
   output_filename <- paste0("output/", scale, "_by_gender.csv")
   dir.create(dirname(output_filename),
     recursive = TRUE,
-    showWarnings = FALSE)
+    showWarnings = FALSE
+  )
   write.csv(result, output_filename, row.names = FALSE)
   message("Wrote result to ", output_filename)
 }

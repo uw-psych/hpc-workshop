@@ -1,16 +1,11 @@
 #!/usr/bin/env Rscript
 
-if (!requireNamespace("psych", quietly = TRUE))
-  install.packages("psych")
-requireNamespace("psych", quietly = TRUE)
-if (!requireNamespace("psychTools", quietly = TRUE))
-  install.packages("psychTools")
-requireNamespace("psychTools", quietly = TRUE)
-if (!requireNamespace("boot", quietly = TRUE))
-  install.packages("boot")
-requireNamespace("boot", quietly = TRUE)
+# Compute Cohen's D by group for Big 5 input file in a single run
 
+# Install `boot` if needed:
+if (!requireNamespace("boot", quietly = TRUE)) install.packages("boot") requireNamespace("boot", quietly = TRUE)
 
+#
 # Calculate Cohen's D
 #'
 #' @param d numeric vector of values
@@ -24,13 +19,13 @@ cohen_d <- function(d, f) {
   m <- c()
   s <- c()
   for (l in levels(f)) {
-    m = c(m, mean(d[f == l]))
-    s = c(s, sd(d[f == l]))
+    m <- c(m, mean(d[f == l]))
+    s <- c(s, sd(d[f == l]))
   }
   delta.m <- as.numeric(m[1] - m[2])
   stdev <-
-    sqrt(((ns[1] - 1) * s[1] ^ 2 + (ns[2] - 1) * s[2] ^ 2) / (ns[1] +
-        ns[2] - 2))
+    sqrt(((ns[1] - 1) * s[1]^2 + (ns[2] - 1) * s[2]^2) / (ns[1] +
+      ns[2] - 2))
   return(list(d = delta.m / stdev, df = ns[1] + ns[2] - 2))
 }
 
@@ -43,7 +38,7 @@ cohen_d <- function(d, f) {
 #' @param indices indices to select
 #'
 #' @return numeric value with Cohen's D
-bs_cohen_d <-  function(data, response, group, indices) {
+bs_cohen_d <- function(data, response, group, indices) {
   d <- data[indices, ] # allows boot to select sample
   fit <- cohen_d(d[[response]], d[[group]])
   return(fit$d)
@@ -57,10 +52,11 @@ bs_cohen_d <-  function(data, response, group, indices) {
 #' @param n.iter number of iterations (default: 100)
 #'
 #' @return a data frame with columns "scale", "d" (the estimate), "ci.level" (the confidence level), "ci.ll" (the lower bound), and "ci.ul" (the upper bound)
-get_cohens_d_for_scale <- function(data,
-  scale,
-  group = "gender",
-  n.iter = 1000) {
+get_cohens_d_for_scale <- function(
+    data,
+    scale,
+    group = "gender",
+    n.iter = 1000) {
   message(
     "Computing Cohen's D for scale ",
     scale,
@@ -105,31 +101,29 @@ get_cohens_d_for_scale <- function(data,
   )
 }
 
-
 # Set the random seed for reproducibility:
 set.seed(42)
 
-# Read in the data:
-scores <- read.csv("../data/psych_bfi_scored.csv", stringsAsFactors = TRUE)
+# Set the number of iterations reproducibility from the BOOT_ITER environment variable, or use 100:
+BOOT_ITER <- as.integer(Sys.getenv("BOOT_ITER", unset = "1000"))
 
-scales <- c("agree",
+
+# Read in the data:
+scores <-
+  read.csv("../data/psych_bfi_scored.csv", stringsAsFactors = TRUE)
+
+scales <- c(
+  "agree",
   "conscientious",
   "extraversion",
   "neuroticism",
-  "openness")
+  "openness"
+)
+
 
 # Calculate result:
-
-for (scale in scales) {
-  result <- get_cohens_d_for_scale(scores, scale)
-  output_filename <- paste0("../output/", scale, "_by_gender.csv")
-  dir.create(dirname(output_filename),
-    recursive = TRUE,
-    showWarnings = FALSE)
-  write.csv(result, output_filename, row.names = FALSE)
-  message("Wrote result to ", output_filename)
-}
-
-results <- do.call(rbind, lapply(list.files("../output/scored", full.names = TRUE), read.csv))
+results <-
+  do.call(rbind, lapply(scales, function(scale) {
+    get_cohens_d_for_scale(scores, scale, n.iter = BOOT_ITER)
+  }))
 print(results)
-write.csv(results, "../output/combined.csv", row.names = FALSE)

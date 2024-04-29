@@ -9,13 +9,6 @@
 #	Apptainer. It is intended to be run on the Klone cluster at the University
 #	of Washington.
 
-# APPTAINER SETUP:
-#	The parameters to apptainer are specified by environment variables.
-#	The commands below will use the default values specified below unless
-#	these environment variables are already set. (this is what the :- means)
-#		APPTAINER_IMAGE_PATH:
-#			The path to the apptainer image to use
-APPTAINER_IMAGE_PATH="/gscratch/scrubbed/${USER}/r-latest.sif"
 
 # SCRIPT SETUP:
 # The parameters to the R script cam be specified by environment variables.
@@ -24,7 +17,7 @@ APPTAINER_IMAGE_PATH="/gscratch/scrubbed/${USER}/r-latest.sif"
 #	these environment variables are already set. (this is what the :- means)
 #		BOOT_ITER:
 #			The number of bootstrap iterations to run
-export BOOT_ITER="${BOOT_ITER:-1000}"
+export BOOT_ITER="${BOOT_ITER:-10000}"
 
 # COMMANDS:
 # Load the latest version of apptainer:

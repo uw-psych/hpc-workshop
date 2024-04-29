@@ -1,0 +1,603 @@
+---
+title: "HPC Workshop 1"
+format: revealjs
+---
+
+## HPC Workshop 1
+
+Welcome to this workshop on High Performance Computing (HPC) using the University of Washington's Hyak cluster. This workshop is designed to give you a basic understanding of how to use the cluster for your research using a practical example of running a computationally intensive bootstrap for data analysis.
+
+## Aims
+
+-   Understand how HPC can accelerate your research
+-   Learn how to log in to Hyak and navigate the file system
+-   Learn how to submit jobs to the cluster and manage them
+-   Wrap your analysis in an Apptainer container for reproducibility and portability
+-   See how you can use array jobs to accelerate your analysis
+
+## What is an HPC cluster?
+
+-   A **cluster** is a group of computers that work together to solve problems
+-   An **HPC cluster** is a cluster of computers that are optimized for running computations that require a lot of CPU power and memory
+-   The **Hyak** cluster at the University of Washington has hundreds of computers that are connected together and can be used to run computations in parallel
+-   More than 21,000 CPU cores and 1,000 GPUs
+
+## Why use an HPC cluster?
+
+Speed!
+
+-   **CPU power**: Multiple high-performance CPUs per node (56 on `gpu-a40` nodes)
+-   **Memory**: Oodles of RAM (1 TB on `gpu-a40` nodes)
+-   **GPU**: Some nodes have GPUs, serious speed increases for certain types of computations (e.g., machine learning)
+-   **Parallelism**: Run computations in parallel across many different computers
+
+## Prerequisites
+
+Before you can log in to Hyak, you will need:
+
+-   A UW NetID
+-   A SSH client (e.g. PuTTY, MobaXterm, or the terminal on Mac/Linux) on your laptop
+
+If you have not set up an SSH client, visit <https://uw-psych.github.io/compute_docs/docs/start/connect-ssh.html> for instructions.
+
+## Logging in to Hyak
+
+To log in to Hyak, open your SSH client and enter the following command:
+
+``` bash
+ssh your-uw-netid@klone.hyak.uw.edu
+```
+
+Replace `your-uw-netid` with your UW NetID and enter your credentials when prompted.
+
+## The file system
+
+The file system on Hyak is organized as a hierarchy:
+
+-   `/` - the root directory
+    -   `/mmfs1` - the main user file system for Hyak
+        -   `/mmfs1/home` - the root of the home directory for all users
+            -   `/mmfs1/home/your-uw-netid` - your home directory (only 10 GB!)
+    -   `/gscratch` - data directory for Hyak users
+        -   `/gscratch/scrubbed` - a directory for temporary files that are periodically deleted
+
+## Your home directory (`~`)
+
+Once you have logged in, you will be in your **home directory** on the Hyak cluster.
+
+-   Home directory is `C:\Users\You` on Windows or `/Users/You` on Mac
+-   Stored under `/mmfs1/home/your-uw-netid`
+-   Can use `~` for short in the command prompt
+
+::: callout-caution
+Your directory is limited to 10 GB. Do not store large files here! Use the `/gscratch` directory instead.
+:::
+
+## Listing files
+
+List the contents of your `~` by typing `ls` into the command prompt and pressing `Enter`:
+
+``` bash
+ls
+```
+
+Move to another directory with `cd`, e.g.:
+
+``` bash
+cd /gscratch # [C]hange [d]irectory to /gscratch
+ls # List contents
+cd ~ # Move back to home
+pwd # Display current directory
+```
+
+## The shell
+
+-   `bash` is the command-line interface we have been using
+-   Both an interpreter and a programming language
+    -   Use interactively to run commands
+    -   Write scripts to automate tasks
+
+## bash
+
+### Comments
+
+In `bash`, anything after `#` is a comment (like Python, R).
+
+### Environment variables
+
+**Environment variables** help pass inputs to a script. Set environment variables with:
+``` bash
+# Make sure to use quotes and do not put spaces aside '=':
+VARIABLE="Something like this" 
+# Print the value to the screen:
+echo "$VARIABLE" 
+# More precise syntax - helps avoid some wild issues:
+echo "${VARIABLE}" 
+ # Make VARIABLE available to subsequent external commands:
+export VARIABLE
+```
+
+## bash: History and Completion
+
+-   Use `↑` and `↓` keys to recall the text of the commands you have run before
+-   Use `Tab` to complete file names, commands etc.
+    -   e.g., `cd /gscr` + `Tab` → `cd /gscratch`
+
+## Editing files
+
+Use a text editor to edit text files (scripts, etc.)
+
+::: columns
+::: {.column width="40%"}
+-   `nano` is a good one if you've never tried one before
+:::
+
+::: {.column width="60%"}
+![](nano.png)
+:::
+:::
+
+::: notes
+-   To start `nano`, type in the command `nano`. You can then start typing text into the editor.
+-   To save your work, press `Ctrl` + `O`, type in a file name, and press `Enter`.
+-   To exit `nano`, press `Ctrl` + `X`.
+:::
+
+## Viewing files
+
+Use:
+
+-   `cat` to view short files
+-   Use `more` to view long files
+    -   ...or `less`
+
+``` bash
+cat /etc/os-release # A short file
+more /etc/slurm.conf # A long file
+less /etc/slurm.conf # Another way for a long file
+```
+
+## Getting help with commands
+
+-   `man` displays the manual page ("manpage") for a command
+-   `man ls` - displays the manual page for the `ls` command.
+-   "manpages" tend to be exhaustive and overwhelming!
+-   Add `--help` to a command to get a shorter, more user-friendly help message for many commands
+
+## `tldr` for quick command reference
+
+`tldr`: A supplement to `man` pages providing practical examples:
+
+``` bash
+pip3.9 install --user tldr
+tldr ls
+```
+
+![](tldr.png)
+
+## `ranger`
+
+`ranger` is an easy-to-use program to navigate the file system:
+
+``` bash
+pip3.9 install --user ranger-fm
+```
+
+::: columns
+::: {.column width="30%"}
+-   Navigate using arrow keys
+-   Open files with `Enter`
+-   Exit with `q`
+:::
+
+::: {.column width="70%"}
+![](ranger-fm.png)
+:::
+:::
+
+## SLURM
+
+-   Jobs: programs/scripts you want to run + resources allocated for them
+-   Jobs on Hyak are scheduled using the SLURM **workload manager**
+-   Specify the resources you need when submitting a job
+-   Job runs when SLURM determines there are enough resources available
+-   Submitting a job runs it on the cluster when the resources are available
+
+::: notes
+Jobs are programs or scripts that you want to run on the cluster. You submit jobs to SLURM, and it schedules and runs them on the cluster when resources are available. Resource allocation depends on the amount of resources you request, the resources available on the cluster, and the resources available to the SLURM account you are using.
+:::
+
+## Login & Compute Nodes
+
+-   The **login node** is the computer you are connected to after running `SSH`
+-   Use the login node for submitting and managing jobs, minor tasks like editing a script or copying a handful of files
+-   Do **not** use it to run your computations
+-   **Compute nodes** are where your jobs will run
+-   The scheduler will allocate resources on the compute nodes to your jobs
+-   Jobs can be run in parallel on multiple compute nodes
+
+## Resource availability
+
+The main resources you will be concerned with are:
+
+-   **CPUs** - the number of CPU cores you can use
+-   **Memory** - the amount of RAM you can use
+-   **GPUs** - the number of GPUs you can use
+
+## hyakalloc
+
+-   `hyakalloc` shows the resources available to you across all the nodes on the cluster
+
+::: columns
+::: {.column width="40%"}
+-   A job made to run on a single node will have to wait for all the resources it needs to become available on a single node
+:::
+
+::: {.column width="60%"}
+![](hyakalloc.png)
+:::
+:::
+
+## The queue
+
+-   Jobs are submitted to a **queue** in SLURM
+-   Use `squeue` to see the jobs in the queue that are running or waiting to run
+
+``` bash
+squeue
+```
+
+-   Use `squeue --me` to see only your jobs in the queue
+
+``` bash
+squeue --me
+```
+
+## Interactive session
+
+-   An **interactive session** is a way to get access to a compute node for a short period of time
+-   Use an interactive session to test your code, run small jobs, or debug problems
+-   Use the `salloc` command to start an interactive session
+
+## Launching an interactive session
+
+To launch a job, you will need to specify the resources you need, the account to charge the resources to, and the partition -- group of resources -- to run the job on.
+
+For a session using the `escience` account, the `gpu-a40` partition, 1 hour of time, 1G of memory, 1 CPU:
+
+``` bash
+salloc \
+    --account escience \
+    --partition gpu-a40 \
+    --time=1:00:00 \
+    --mem=1G \
+    --cpus-per-task=1
+```
+
+You may have to wait for resources to become available -- use `squeue` to check the status of your request.
+
+## Running commands in an interactive session
+
+When your interactive session starts, you will be given a prompt on a compute node where you can run commands and test your code. For example, you can run the `hostname` command to see the name of the compute node you are on:
+
+``` bash
+hostname
+```
+
+Any commands you run in the interactive session will be run on the compute node you are on and will not affect the login node.
+
+If you run `exit` or `Ctrl` + `D`, the interactive session will end.
+
+## Questions?
+
+Do you have any questions about what we've covered so far?
+
+## Running an example analysis
+
+### Practical example
+
+**Obtaining confidence intervals for a point estimate using the bootstrap**
+
+-   The bootstrap is a resampling method that can be used to estimate the sampling distribution of a statistic
+-   Requires running the same analysis many times on different samples of the data
+-   Can be extremely computationally intensive
+-   Many opportunities for running these repeated computations in parallel
+
+## Dataset
+
+-   Personality data from the SAPA project ("Synthetic Aperture Personality Assessment," Revelle, W.)
+
+```{r, echo=FALSE}
+library(tidyverse, quietly = TRUE)
+library(magrittr, quietly = TRUE)
+options(tidyverse.quiet = TRUE)
+f <- readr::read_csv("../../data/sapa_scored_subset.csv.gz", progress = FALSE, show_col_types = FALSE)
+```
+
+-   `r nrow(f)` rows, `r ncol(f)` cols -- each row an individual subject
+-   Demographics:
+    -   `collected` (date of data collection)
+    -   `age`, `gender`, `country`
+    -   `relstatus`, `marstatus`
+    -   `exer`\[cise\], `smoke`,
+    -   `education`, `jobstatus`
+
+## Dataset
+
+-   10 columns of scored personality scales for `IPIP50` and `IPIP100`:
+    -   Agreeableness
+    -   Conscientiousness
+    -   Extraversion
+    -   Emotional Stability
+    -   Openness/Intellect
+
+## Goal
+
+::: columns
+::: {.column width="40%"}
+-   Estimate the 95% confidence interval for the means and medians of the personality scales, grouped by categories, using the bootstrap
+:::
+
+::: {.column width="60%"}
+``` python
+    categories = (
+        "collected",
+        "gender",
+        "relstatus",
+        "marstatus",
+        "exer",
+        "smoke",
+        "country",
+        "education",
+        "jobstatus",
+        ("gender", "smoke"),
+        ("education", "smoke"),
+        ("gender", "relstatus"),
+    )
+```
+:::
+:::
+
+## Bootstrapping procedure
+
+-   For each category, resample the data with replacement
+-   Calculate the mean and median for each resample
+-   Repeat this process many times (e.g., 10,000 times)
+-   Use the distribution of means and medians to estimate the 95% confidence interval
+
+## Setup
+
+Create a new directory for the project under /gscratch/scrubbed/your-uw-netid:
+
+``` bash
+mkdir -p /gscratch/scrubbed/$USER
+cd $_ # Go to the new directory
+```
+
+Download the project files from GitHub, navigate to the project directory, and list the contents:
+
+``` bash
+git clone https://github.com/uw-psych/hpc-workshop
+cd hpc-workshop
+ls
+```
+
+## Setup (cont.)
+
+We will use a Python script for our computations -- `workshop-01/single-job.py`:
+
+``` bash
+cd workshop-01
+ls
+less single-job.py # View the contents of the file
+```
+
+## Python and dependencies
+
+The script relies on the third-party Python packages:
+
+-   `polars`: like a very fast R `dplyr` for Python
+-   `tqdm`: a progress bar for Python
+
+We also want to specify a recent version of Python to use: on Hyak, we only have Python 3.6 and 3.9.
+
+## Apptainer
+
+-   Managing Python and its dependencies can be a headache 🤯
+-   Many tools: `conda`, `virtualenv`, `pip`, `poetry`, `pipenv`, etc.
+-   ...but these are not always available and reproducible across different systems
+
+## Apptainer (cont.)
+
+-   A software container is a way to package up an application and its dependencies so that it can run consistently across different environments
+-   Apptainer (f.k.a. Singularity) is a tool for creating and managing software containers that is installed on the Hyak cluster
+-   An Apptainer container is like a lightweight, portable, and self-contained virtual machine -- e.g., VirtualBox, VMware, Parallels, etc.
+
+## Definition file
+
+-   We will use Apptainer to create a container for our Python script
+-   The `Singularity` file in the `workshop-01` directory contains the definition for the Apptainer container
+-   `requirements.txt` contains the Python dependencies for the container
+-   We will build the container on the cluster and use it to run our Python script
+
+## Building the container
+
+-   Need a compute node to use Apptainer
+-   For this workshop, we will use a pre-built container image
+
+## Download the pre-built container
+
+In an interactive session, run:
+
+``` bash
+cd /gscratch/scrubbed/$USER # Go to your scratch directory
+cd hpc-workshop/workshop-01 # Move into the workshop-01 directory
+apptainer pull oras://ghcr.io/uw-psych/hpc-workshop/workshop-01:latest
+ls # List the contents of the directory
+```
+
+This will download the container image to your scratch directory under the name `workshop-01_latest.sif`.
+
+## Running the container
+
+The container image contains everything we need to run our Python script: namely the `python` interpreter and the `polars` and `tqdm` packages.
+
+To run the Python script inside the container, use the `apptainer exec` command:
+
+``` bash
+apptainer exec workshop-01_latest.sif python
+```
+
+This will start an interactive session inside the container, where you can run the Python script as if you were running it on your local machine.
+
+## Running the script
+
+We're ready to run the script! Let's give it a try:
+
+``` bash
+apptainer exec workshop-01_latest.sif python single-job.py
+```
+
+...oops! We forgot to specify the input file. Let's try again:
+
+``` bash
+# Set the BOOT_INPUT_PATH environment variable:
+export BOOT_INPUT_PATH=/gscratch/scrubbed/$USER/hpc-workshop/data/sapa_scored_subset.csv.gz
+# Run the script again:
+apptainer exec workshop-01_latest.sif python single-job.py
+```
+
+Still not working -- Apptainer can't find the input file. This is because the container is isolated from the `/gscratch` directory.
+
+## Binding `/gscratch`
+
+We need to bind the `/gscratch` directory to the container, which you can do by setting the environment variable `APPTAINER_BINDPATH`:
+
+``` bash
+export APPTAINER_BINDPATH=/gscratch
+apptainer exec workshop-01_latest.sif python single-job.py
+```
+
+Now we're talking. The script is running, and we can see the progress bar from `tqdm` as the script runs.
+
+## Speeding it up
+
+The script is running, but it's taking a long time to complete. The easiest way to speed it up is to re-run the script with more resources. Type `exit` to exit the container and return to the login node, and then run the following command to start an interactive session with more resources:
+
+``` bash
+salloc \
+    --account escience \
+    --partition gpu-a40 \
+    --time=1:00:00 \
+    --mem=16G \
+    --cpus-per-task=6
+```
+
+## Speeding it up
+
+Now, let's set our environment variables and run the script again:
+
+``` bash
+export BOOT_INPUT_PATH=/gscratch/scrubbed/$USER/hpc-workshop/data/sapa_scored_subset.csv.gz
+export BOOT_N_ITER=100
+export APPTAINER_BINDPATH=/gscratch
+apptainer exec workshop-01_latest.sif python single-job.py
+```
+
+That's more like it! The script is running much faster now.
+
+## Parallelizing the analysis
+
+-   Script is much faster now, but we can make it even faster
+-   Our problem is **embarrassingly parallel** -- we can run the same analysis on different categories independently
+-   SLURM's **array job** feature is perfect for this -- we split the categories into separate jobs and run them in parallel
+
+## Batch jobs
+
+-   Can't use an interactive session for this -- need to submit a batch job
+-   `sbatch` command submits a batch job to SLURM
+-   Commands to run the job are specified in a job script
+-   Job script specifies the resources to request, the commands to run, and the environment variables to set
+-   `workshop-01/sbatch.job` contains our job script
+
+## Array job
+
+-   We can run the same job on multiple categories using an array job
+-   Each job in the array will run the same commands, but on a different subset of the categories
+-   SLURM assigns each job in the array a different index
+-   The job script can use the index to determine which categories to run the analysis on
+
+## Array job (cont.)
+
+-   Need to modify the Python script to determine which categories to run the analysis on
+
+-   `workshop-01/array-job.py` does this by:
+
+    -   Splitting the categories into `N` groups, where `N` is the number of jobs in the array
+    -   Reading the `SLURM_ARRAY_TASK_ID` environment variable to determine which group to run the analysis on
+    -   Running the analysis on the categories in the `i`th group, where `i` is the index of the job in the array
+
+## Submitting the array job
+
+Navigate to the `workshop-01` directory if you're not already there:
+
+``` bash
+cd /gscratch/scrubbed/$USER/hpc-workshop/workshop-01
+```
+
+Submit an array job to SLURM using the `sbatch` command, requesting 4 jobs:
+
+``` bash
+sbatch \
+    --account escience \
+    --partition gpu-a40 \
+    --mem 16G \
+    --cpus-per-task 4 \
+    --time 1:00:00 \
+    --array=1-4 \
+    sbatch.job
+```
+
+This will submit an array job to SLURM, which will run the same analysis on 4 different subsets of the categories in parallel.
+
+## Monitoring the job
+
+As usual, you can use the `squeue` command to monitor the status of your job:
+
+``` bash
+squeue --me
+```
+
+But there's another way you can track progress in real time...
+
+## Log files
+
+-   sbatch.job specifies a location for the output files and the log files for the array job
+-   Files with the extension `.log` contain what the job would print to the screen
+-   Read log files to track the progress of the individual jobs in the array with `tail -f`:
+
+``` bash
+# Go to the directory where the log files are stored:
+cd output/array-job/1234567 # Replace with your job ID
+# Use `tail -f` to follow the progress of the log files 
+# (* is a "wildcard" we use to select any file with the extension .log):
+tail -f *.log
+```
+
+Press `Ctrl` + `D` to stop following the log files.
+
+## Getting the results
+
+Use `scp` to copy the results from the cluster to your local machine:
+
+`scp -r your-uw-netid@klone.hyak.uw.edu:/gscratch/scrubbed/your-uw-netid/hpc-workshop/workshop-01/output .`
+
+## Q&A
+
+Questions?
+
+## More resources
+
+-   <https://uw-psych.github.io/compute_docs>
+-   <https://hyak.uw.edu/docs>
+-   <https://www.hpc-carpentry.org>

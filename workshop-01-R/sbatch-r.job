@@ -44,4 +44,10 @@ for x in "agree" "conscientious" "extraversion"  "neuroticism" "openness"; do
 done
 wait
 
+echo "Done with jobs" >&2
+
+# Combine the outputs:
+srun -n1 --exclusive apptainer exec --bind /gscratch "/gscratch/scrubbed/${USER}/r-base_latest.sif" Rscript merge-outputs.R output/combined.csv output/*.csv
+
+echo "Output is ready at output/combined.csv" >&2
 

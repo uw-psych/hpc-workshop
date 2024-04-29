@@ -96,24 +96,25 @@ get_cohens_d_for_scale <- function(data,
   )
 }
 
-
 # Set the random seed for reproducibility:
 set.seed(42)
 
 # Set the number of iterations reproducibility from the BOOT_ITER environment variable, or use 10000:
 BOOT_ITER <- as.integer(Sys.getenv("BOOT_ITER", unset = "10000"))
 
-# Read in the data:
-scores <-
-  read.csv("../data/psych_bfi_scored.csv", stringsAsFactors = TRUE)
+# Get command-line arguments:
+cmd_args <- commandArgs(trailingOnly = TRUE)
+
+# Read in the data, getting the input filename from the first command-line argument:
+scores <- read.csv(cmd_args[1], stringsAsFactors = TRUE)
 
 # Get the scales to compute from the command-line arguments:
-scales <- commandArgs(trailingOnly = TRUE)
+scales <- cmd_args[-1]
 
 # Calculate result:
 for (scale in scales) {
   result <- get_cohens_d_for_scale(scores, scale, n.iter = BOOT_ITER)
-  output_filename <- paste0("../output/", scale, "_by_gender.csv")
+  output_filename <- paste0("output/", scale, "_by_gender.csv")
   dir.create(dirname(output_filename),
     recursive = TRUE,
     showWarnings = FALSE)

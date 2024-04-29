@@ -1,16 +1,7 @@
 #!/usr/bin/env Rscript
+if (!requireNamespace("boot", quietly = TRUE)) install.packages("boot"); requireNamespace("boot", quietly = TRUE)
 
-if (!requireNamespace("psych", quietly = TRUE))
-  install.packages("psych")
-requireNamespace("psych", quietly = TRUE)
-if (!requireNamespace("psychTools", quietly = TRUE))
-  install.packages("psychTools")
-requireNamespace("psychTools", quietly = TRUE)
-if (!requireNamespace("boot", quietly = TRUE))
-  install.packages("boot")
-requireNamespace("boot", quietly = TRUE)
-
-
+#
 # Calculate Cohen's D
 #'
 #' @param d numeric vector of values
@@ -44,7 +35,7 @@ cohen_d <- function(d, f) {
 #'
 #' @return numeric value with Cohen's D
 bs_cohen_d <-  function(data, response, group, indices) {
-  d <- data[indices, ] # allows boot to select sample
+  d <- data[indices,] # allows boot to select sample
   fit <- cohen_d(d[[response]], d[[group]])
   return(fit$d)
 }
@@ -109,19 +100,19 @@ get_cohens_d_for_scale <- function(data,
 # Set the random seed for reproducibility:
 set.seed(42)
 
-# Read in the data:
-scores <- read.csv("../data/psych_bfi_scored.csv", stringsAsFactors = TRUE)
+# Set the number of iterations reproducibility from the BOOT_ITER environment variable, or use 10000:
+BOOT_ITER <- as.integer(Sys.getenv("BOOT_ITER", unset = "10000"))
 
-scales <- c("agree",
-  "conscientious",
-  "extraversion",
-  "neuroticism",
-  "openness")
+# Read in the data:
+scores <-
+  read.csv("../data/psych_bfi_scored.csv", stringsAsFactors = TRUE)
+
+# Get the scales to compute from the command-line arguments:
+scales <- commandArgs(trailingOnly = TRUE)
 
 # Calculate result:
-
 for (scale in scales) {
-  result <- get_cohens_d_for_scale(scores, scale)
+  result <- get_cohens_d_for_scale(scores, scale, n.iter = BOOT_ITER)
   output_filename <- paste0("../output/", scale, "_by_gender.csv")
   dir.create(dirname(output_filename),
     recursive = TRUE,
@@ -129,7 +120,3 @@ for (scale in scales) {
   write.csv(result, output_filename, row.names = FALSE)
   message("Wrote result to ", output_filename)
 }
-
-results <- do.call(rbind, lapply(list.files("../output/scored", full.names = TRUE), read.csv))
-print(results)
-write.csv(results, "../output/combined.csv", row.names = FALSE)

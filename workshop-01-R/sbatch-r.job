@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#SBATCH --output=/dev/null
+#SBATCH --error=/dev/null
+#SBATCH --job-name=sapa_bootstats
+# This is a SLURM job script for running the ipip_bootstats tutorial with
+#	Apptainer. It is intended to be run on the Klone cluster at the University
+#	of Washington.
+
+# APPTAINER SETUP:
+#	The parameters to apptainer are specified by environment variables.
+#	The commands below will use the default values specified below unless
+#	these environment variables are already set. (this is what the :- means)
+#		APPTAINER_IMAGE_PATH:
+#			The path to the apptainer image to use
+APPTAINER_IMAGE_PATH="/gscratch/scrubbed/${USER}/r-latest.sif"
+
+# SCRIPT SETUP:
+# The parameters to the R script cam be specified by environment variables.
+# They must be exported so that they are visible to the R script.
+#	The commands below will use the default values specified below unless
+#	these environment variables are already set. (this is what the :- means)
+#		BOOT_N_ITER:
+#			The number of bootstrap iterations to run
+export BOOT_N_ITER="${BOOT_N_ITER:-1000}"
+
+# COMMANDS:
+# Load the latest version of apptainer:
+module load apptainer/local
+
+# Create the base directory for the image:
+mkdir -p "/gscratch/scrubbed/${USER}"
+
+# If the image doesn't exist, download it:
+#   (--exclusive is used to ensure that the build process completes before the computations start)
+#   (We use the --disable-cache option to avoid filling up your home directory)
+if ! [[ -f "${APPTAINER_IMAGE_PATH:-}" ]]; then
+	srun --exclusive apptainer pull \
+		--disable-cache \
+		"${APPTAINER_IMAGE_PATH}" \
+		 docker://r-base:latest
+fi
+
+# Append the /gscratch directory Apptainer's bind path so that we can access it:
+export APPTAINER_BINDPATH="${APPTAINER_BINDPATH:+${APPTAINER_BINDPATH}:}/gscratch"
+
+# Create log directory:
+mkdir -p log
+
+for x in "gender" "agree" "conscientious" "extraversion"  "neuroticism" "openness"; do
+  export SRUN_OUTPUT="log/$x.log"
+  srun apptainer exec docker://r-base:latest Rscript split-job.R "$x"
+fi
